@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "yyy_monkey (MVP)",
+  "version": "0.1.0",
+  "description": "抖音视频小助手：候选采集 + 任务执行（MVP 骨架）",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "yyy_monkey"
+  },
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": ["http://127.0.0.1:17890/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
+
+

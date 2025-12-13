@@ -1,0 +1,22 @@
+[project]
+name = "douyin-auto-like"
+version = "0.1.0"
+description = "Douyin web auto-like using Selenium (manual login, reuse profile)."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "selenium>=4.20.0",
+]
+
+[project.scripts]
+douyin-like = "douyin_auto_like.cli:main"
+douyin-danmaku = "douyin_auto_like.danmaku_cli:main"
+
+[build-system]
+requires = ["hatchling>=1.24.2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/douyin_auto_like"]
+
+

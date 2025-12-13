@@ -1,0 +1,13 @@
+.venv/
+.python-version
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.pyc
+
+# Chrome profile for keeping Douyin login state
+.chrome_profile/
+cookies.json
+
+

@@ -10,7 +10,6 @@ dependencies = [
 
 [project.scripts]
 douyin-like = "douyin_auto_like.cli:main"
-douyin-danmaku = "douyin_auto_like.danmaku_cli:main"
 
 [build-system]
 requires = ["hatchling>=1.24.2"]

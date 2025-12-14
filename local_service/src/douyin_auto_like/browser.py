@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+import logging
 import shutil
 
 from selenium import webdriver
@@ -47,13 +48,14 @@ def build_chrome_driver(cfg: ChromeConfig) -> webdriver.Chrome:
         # 新版无头更接近真实 Chrome；但首次扫码登录不建议开无头
         options.add_argument("--headless=new")
 
+    logger = logging.getLogger("douyin-like")
     chromedriver_path = _detect_chromedriver_path()
     if chromedriver_path:
-        print(f"[douyin-like] 使用本机 chromedriver：{chromedriver_path}", flush=True)
+        logger.info("使用本机 chromedriver：%s", chromedriver_path)
         service = Service(executable_path=chromedriver_path)
         driver = webdriver.Chrome(options=options, service=service)
     else:
-        print("[douyin-like] 未检测到本机 chromedriver，将尝试 Selenium Manager（可能会卡住）", flush=True)
+        logger.info("未检测到本机 chromedriver，将尝试 Selenium Manager（可能会卡住）")
         driver = webdriver.Chrome(options=options)
     return driver
 

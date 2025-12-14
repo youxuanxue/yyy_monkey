@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from selenium.webdriver import ActionChains
+from selenium.webdriver import ActionChains, Keys
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
@@ -27,7 +28,7 @@ class DouyinBot:
     Douyin 网页端自动化：
     - 支持打开首页/视频链接
     - 支持人工扫码登录后复用 Profile（由 browser.py 负责）
-    - 支持对当前播放的视频点赞、以及推荐流点赞 N 条
+    - 支持对当前视频执行双击点赞、滑走切换到下一条、以及播放状态/倍速控制
     """
 
     def __init__(self, driver: WebDriver, cfg: RunConfig, *, verbose: bool = False) -> None:
@@ -41,7 +42,7 @@ class DouyinBot:
 
     def log(self, msg: str) -> None:
         if self.verbose:
-            print(f"[{self._ts()}] {msg}", flush=True)
+            logging.getLogger("douyin-like").info("%s", msg)
 
     # -------------------------
     # 基础能力
@@ -102,7 +103,7 @@ class DouyinBot:
             cur = self.driver.current_url
         except Exception:
             pass
-        print(f"{prompt}\n(当前页面：{cur})", flush=True)
+        logging.getLogger("douyin-like").info("%s (当前页面：%s)", prompt, cur)
         input()
 
     # -------------------------
@@ -189,7 +190,7 @@ class DouyinBot:
                 tag = ""
             self.log(f"未找到 <video>：改用视口左上 1/3 处双击（x={x}, y={y}, vw={vw}, vh={vh}, tag={tag}）")
             ok = self._dispatch_dblclick_at(x, y)
-            time.sleep(self.cfg.interval_sec)
+            time.sleep(1.0)
             return ok
         try:
             self.driver.execute_script("arguments[0].scrollIntoView({block:'center', inline:'center'})", v)
@@ -238,7 +239,7 @@ class DouyinBot:
                 self.log("使用兜底方案：未取到中心点信息，退化为对 <video> 元素双击")
                 ActionChains(self.driver).move_to_element(v).double_click().perform()
 
-            time.sleep(self.cfg.interval_sec)
+            time.sleep(1.0)
             return True
         except Exception as e:
             self.log(f"兜底失败：双击视频区域执行异常（{type(e).__name__}: {e}）")
@@ -264,21 +265,35 @@ class DouyinBot:
         - has_video: bool
         - current_time: float
         - duration: float
+        - playback_rate: float
         - paused: bool
         - ended: bool
+        - ready_state: int
         """
         try:
             return dict(
                 self.driver.execute_script(
                     """
-                    const v = document.querySelector('video');
-                    if (!v) return {has_video:false};
+                    // 选取当前“最可见/最大”的 video，避免拿到后台/预加载 video
+                    const vids = Array.from(document.querySelectorAll('video'));
+                    if (!vids.length) return {has_video:false};
+                    let best = null, bestArea = 0;
+                    for (const v of vids) {
+                      const r = v.getBoundingClientRect();
+                      const area = Math.max(0, r.width) * Math.max(0, r.height);
+                      const inView = r.bottom > 0 && r.right > 0 &&
+                        r.left < (window.innerWidth||0) && r.top < (window.innerHeight||0);
+                      if (inView && area > bestArea) { best = v; bestArea = area; }
+                    }
+                    const v = best || vids[0];
                     return {
                       has_video: true,
                       current_time: v.currentTime || 0,
                       duration: v.duration || 0,
+                      playback_rate: v.playbackRate || 1,
                       paused: !!v.paused,
-                      ended: !!v.ended
+                      ended: !!v.ended,
+                      ready_state: v.readyState || 0
                     };
                     """
                 )
@@ -299,35 +314,222 @@ class DouyinBot:
         if r <= 0:
             return False
 
-        v = self._find_visible_video()
-        if v is None:
-            # 兜底：直接取页面第一个 video
-            try:
-                ok = bool(
-                    self.driver.execute_script(
-                        """
-                        const r = arguments[0];
-                        const v = document.querySelector('video');
-                        if (!v) return false;
-                        v.playbackRate = r;
-                        return true;
-                        """,
-                        r,
-                    )
-                )
-                if ok:
-                    self.log(f"已设置 playbackRate={r}（querySelector('video')）")
-                return ok
-            except Exception:
-                return False
-
         try:
-            ok = bool(self.driver.execute_script("arguments[0].playbackRate = arguments[1]; return true;", v, r))
+            ok = bool(
+                self.driver.execute_script(
+                    """
+                    const r = arguments[0];
+                    const vids = Array.from(document.querySelectorAll('video'));
+                    if (!vids.length) return false;
+                    let best = null, bestArea = 0;
+                    for (const v of vids) {
+                      const rect = v.getBoundingClientRect();
+                      const area = Math.max(0, rect.width) * Math.max(0, rect.height);
+                      const inView = rect.bottom > 0 && rect.right > 0 &&
+                        rect.left < (window.innerWidth||0) && rect.top < (window.innerHeight||0);
+                      if (inView && area > bestArea) { best = v; bestArea = area; }
+                    }
+                    const v = best || vids[0];
+                    v.playbackRate = r;
+                    return true;
+                    """,
+                    r,
+                )
+            )
             if ok:
-                self.log(f"已设置 playbackRate={r}（visible video）")
+                self.log(f"已设置 playbackRate={r}")
             return ok
         except Exception:
             return False
+
+    def ensure_playback_rate(self, rate: float, *, wait_sec: float = 2.0) -> bool:
+        """
+        确保 playbackRate 生效：重复设置并读取验证（某些页面会重置 playbackRate）。
+        """
+        deadline = time.time() + max(0.0, float(wait_sec))
+        target = float(rate)
+        last = None
+        while time.time() < deadline:
+            self.set_playback_rate(target)
+            st = self.get_video_state()
+            if st.get("has_video"):
+                last = float(st.get("playback_rate", 0.0) or 0.0)
+                if abs(last - target) < 0.05:
+                    return True
+            time.sleep(0.2)
+        if last is not None:
+            self.log(f"playbackRate 未完全生效：target={target} actual={last}")
+        return False
+
+    def ensure_playing(self, *, wait_sec: float = 2.0) -> bool:
+        """
+        尽量确保视频处于播放状态：
+        - 若 paused 且未 ended，则尝试 v.play()
+        - 为了绕过某些自动播放限制，会先设置 muted=true
+        返回 True 表示最终检测到处于播放（paused=False）或 ended=True；False 表示没做到。
+        """
+        deadline = time.time() + max(0.0, float(wait_sec))
+        while time.time() < deadline:
+            st = self.get_video_state()
+            if not st.get("has_video"):
+                return False
+            if bool(st.get("ended", False)):
+                return True
+            if not bool(st.get("paused", False)):
+                return True
+            try:
+                self.driver.execute_script(
+                    """
+                    const vids = Array.from(document.querySelectorAll('video'));
+                    if (!vids.length) return false;
+                    let best = null, bestArea = 0;
+                    for (const v of vids) {
+                      const r = v.getBoundingClientRect();
+                      const area = Math.max(0, r.width) * Math.max(0, r.height);
+                      const inView = r.bottom > 0 && r.right > 0 &&
+                        r.left < (window.innerWidth||0) && r.top < (window.innerHeight||0);
+                      if (inView && area > bestArea) { best = v; bestArea = area; }
+                    }
+                    const v = best || vids[0];
+                    v.muted = true;
+                    const p = v.play();
+                    if (p && typeof p.catch === 'function') { p.catch(()=>{}); }
+                    return true;
+                    """
+                )
+            except Exception:
+                pass
+            time.sleep(0.25)
+        return False
+
+    def get_page_info(self) -> dict:
+        """
+        获取页面信息（SPA 场景下 document.title 可能不更新，补充 og:title 等）。
+        """
+        try:
+            return dict(
+                self.driver.execute_script(
+                    """
+                    const docTitle = document.title || "";
+                    const og = document.querySelector("meta[property='og:title']")?.getAttribute("content") || "";
+                    const desc = document.querySelector("meta[name='description']")?.getAttribute("content") || "";
+                    const h1 = document.querySelector("h1")?.textContent?.trim() || "";
+                    const h2 = document.querySelector("h2")?.textContent?.trim() || "";
+                    return {doc_title: docTitle, og_title: og, description: desc, h1, h2};
+                    """
+                )
+                or {}
+            )
+        except Exception:
+            return {}
+
+    def swipe_next(self) -> bool:
+        """
+        模拟“滑走/切到下一条视频”。
+        返回 True 表示检测到“已切换到下一条”（URL 或视频特征发生变化）；False 表示多次尝试后仍未检测到切换。
+        """
+        def _sig() -> tuple[str, float, float]:
+            # 用 URL + duration + current_time 作为“是否切换”的粗特征
+            st = self.get_video_state()
+            return (
+                self.safe_current_url(),
+                float(st.get("duration", 0.0) or 0.0),
+                float(st.get("current_time", 0.0) or 0.0),
+            )
+
+        def _changed(before: tuple[str, float, float], after: tuple[str, float, float]) -> bool:
+            if after[0] and before[0] and after[0] != before[0]:
+                return True
+            # duration 改变通常表示换片
+            if abs(after[1] - before[1]) > 0.5 and after[1] > 0 and before[1] > 0:
+                return True
+            # current_time 回到较小值也可能表示换片（避免误判：要求差值足够大）
+            if before[2] > 3.0 and after[2] < 1.0:
+                return True
+            return False
+
+        def _wait_change(before: tuple[str, float, float], wait_sec: float = 1.6) -> bool:
+            deadline = time.time() + max(0.0, wait_sec)
+            while time.time() < deadline:
+                if _changed(before, _sig()):
+                    return True
+                time.sleep(0.2)
+            return False
+
+        before = _sig()
+        self.log(f"模拟滑走：before url={before[0]} dur={before[1]:.1f} cur={before[2]:.1f}")
+
+        # 确保焦点在页面上
+        try:
+            body = self.driver.find_element(By.TAG_NAME, "body")
+            body.click()
+        except Exception:
+            pass
+
+        # 尝试序列（从轻到重）
+        attempts: list[tuple[str, callable]] = []
+
+        def _keys_arrow_down() -> None:
+            ActionChains(self.driver).send_keys(Keys.ARROW_DOWN).perform()
+
+        def _keys_page_down() -> None:
+            ActionChains(self.driver).send_keys(Keys.PAGE_DOWN).perform()
+
+        def _scroll_by_amount() -> None:
+            # Selenium 4: scroll_by_amount（部分环境可用）
+            try:
+                ActionChains(self.driver).scroll_by_amount(0, 900).perform()
+            except Exception:
+                self.driver.execute_script("window.scrollBy(0, Math.floor((window.innerHeight||800)*0.9));")
+
+        def _wheel_event_at_center() -> None:
+            self.driver.execute_script(
+                """
+                const dy = Math.floor((window.innerHeight||800)*0.9);
+                const x = Math.floor((window.innerWidth||1200)/2);
+                const y = Math.floor((window.innerHeight||800)/2);
+                const el = document.elementFromPoint(x, y) || document.body;
+                const ev = new WheelEvent('wheel', {deltaY: dy, clientX: x, clientY: y, bubbles: true, cancelable: true});
+                el.dispatchEvent(ev);
+                window.scrollBy(0, dy);
+                """,
+            )
+
+        def _drag_swipe() -> None:
+            # 触控式“上滑”（等价于向下滚动到下一条）
+            w = int(self.driver.execute_script("return Math.max(0, window.innerWidth||0)")) or 1200
+            h = int(self.driver.execute_script("return Math.max(0, window.innerHeight||0)")) or 800
+            x = w // 2
+            y1 = int(h * 0.75)
+            y2 = int(h * 0.25)
+            root = self.driver.find_element(By.TAG_NAME, "html")
+            ActionChains(self.driver).move_to_element_with_offset(root, x, y1).click_and_hold().pause(0.05).move_by_offset(0, y2 - y1).pause(0.05).release().perform()
+
+        attempts.extend(
+            [
+                ("ArrowDown", _keys_arrow_down),
+                ("PageDown", _keys_page_down),
+                ("scrollByAmount", _scroll_by_amount),
+                ("wheelEvent", _wheel_event_at_center),
+                ("dragSwipe", _drag_swipe),
+            ]
+        )
+
+        for name, fn in attempts:
+            try:
+                self.log(f"模拟滑走：尝试 {name}")
+                fn()
+            except Exception as e:
+                self.log(f"模拟滑走：{name} 异常（{type(e).__name__}: {e}）")
+                continue
+            if _wait_change(before, wait_sec=1.8):
+                after = _sig()
+                self.log(f"模拟滑走：成功 {name} after url={after[0]} dur={after[1]:.1f} cur={after[2]:.1f}")
+                return True
+
+        after = _sig()
+        self.log(f"模拟滑走：失败 after url={after[0]} dur={after[1]:.1f} cur={after[2]:.1f}")
+        return False
 
     # -------------------------
     # 指定视频链接模式

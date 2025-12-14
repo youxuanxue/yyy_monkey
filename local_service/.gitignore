@@ -10,4 +10,5 @@ __pycache__/
 .chrome_profile/
 cookies.json
 
+logs/
 

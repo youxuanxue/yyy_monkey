@@ -53,11 +53,31 @@ uv run douyin-danmaku --video-url "https://www.douyin.com/video/xxxxxxxxxxxx" --
 - `--manual-login`：打开页面后暂停，等待你扫码/登录完成后继续
 - `--dump-cookies`：把 cookies 导出 JSON（排查登录态）
 - `--verbose`：输出更详细的执行日志
+- `--follow`：点赞后持续监控 URL（URL 变化则对新视频继续决策/点赞；遇到 live 跳过）
+- `--check-interval`：follow 模式 URL 检测间隔秒数（默认 5）
+- `--refresh-on-change`：follow 模式 URL 变化时先 `refresh` 再抓信息（轻量）
+- `--restart-driver-on-change`：follow 模式 URL 变化时重启 WebDriver（复用 profile，更慢但更稳）
+- `--max-likes`：点赞动作总数上限（>0 生效；达到后退出）
 
 ### 点赞方式说明
 
 当前实现**只使用“双击视频区域”点赞**，不再尝试定位点赞按钮，也不会判断“是否已点赞”。
 如果你对已经点过赞的视频再次执行双击，可能会出现“重复触发/状态变化”的风险（以页面实际行为为准）。
+
+### 点赞概率与播放速率策略
+
+- **点赞概率**：
+  - 10 秒以下：**0%**（直接跳过并滑走）
+  - 10 秒 ~ 3 分钟：**67%**
+  - 3 分钟以上：**34%**
+  - 未命中概率：不点赞并模拟“滑走下一条”
+- **播放速率**：固定 **1.5x**
+
+### 日志
+
+启动后会在 `local_service/logs/` 下按启动时间生成日志文件，并同步输出到终端。
+
+follow 模式每个 tick 会输出一行 `TICK {...}`（JSON），包含 URL、标题与视频时长/进度/倍速等关键字段，便于离线分析。
 
 ### 免责声明
 

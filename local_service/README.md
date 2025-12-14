@@ -8,6 +8,29 @@
 - **Python >= 3.10**
 - **uv**（包管理/运行）
 
+#### Windows（PowerShell）快速安装/修复 `uv` 找不到
+
+如果你执行 `uv sync` / `uv run ...` 提示 “无法将 uv 项识别为 cmdlet”，通常是 **uv 未安装** 或 **安装后未重启 PowerShell 导致 PATH 未刷新**。
+
+在 PowerShell 里执行：
+
+```powershell
+# 安装 Python（>=3.10）与 uv
+winget install -e --id Python.Python.3.12 --silent --accept-package-agreements --accept-source-agreements
+winget install -e --id astral-sh.uv       --silent --accept-package-agreements --accept-source-agreements
+
+# 不重启终端也能生效：刷新当前会话 PATH
+$machine=[Environment]::GetEnvironmentVariable('Path','Machine')
+$user=[Environment]::GetEnvironmentVariable('Path','User')
+$env:Path="$machine;$user"
+
+# 验证
+uv --version
+python --version
+```
+
+> 也可以直接 **关闭并重新打开 PowerShell**，让新 PATH 自动生效。
+
 在 `local_service/` 目录执行：
 
 ```bash

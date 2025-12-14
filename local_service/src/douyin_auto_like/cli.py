@@ -180,6 +180,9 @@ def main(argv: list[str] | None = None) -> None:
             last_processed_url = bot.safe_current_url()
             stable_url = last_processed_url
             stable_count = 0
+            # 超过 3 分钟自动划走（避免长视频卡住不切换）
+            max_watch_sec = 180.0
+            last_force_swipe_ts = 0.0
             seen_modal_ids: set[str] = set()
             modal_re = re.compile(r"[?&]modal_id=([0-9]+)")
 
@@ -229,17 +232,43 @@ def main(argv: list[str] | None = None) -> None:
                     "has_video": bool(st.get("has_video", False)),
                 }
                 if st.get("has_video"):
+                    def _f(v, default: float = 0.0) -> float:
+                        try:
+                            x = float(v if v is not None else default)
+                            if math.isnan(x):
+                                return float(default)
+                            return x
+                        except Exception:
+                            return float(default)
+
                     tick_payload.update(
                         {
-                            "current_time": float(st.get("current_time", 0.0)),
-                            "duration": float(st.get("duration", 0.0)),
-                            "playback_rate": float(st.get("playback_rate", 1.0)),
+                            "current_time": _f(st.get("current_time", 0.0), 0.0),
+                            "duration": _f(st.get("duration", 0.0), 0.0),
+                            "playback_rate": _f(st.get("playback_rate", 1.0), 1.0),
                             "paused": bool(st.get("paused", False)),
                             "ended": bool(st.get("ended", False)),
-                            "ready_state": int(st.get("ready_state", 0)),
+                            "ready_state": int(st.get("ready_state", 0) or 0),
                         }
                     )
                 logger.info("TICK %s", json.dumps(tick_payload, ensure_ascii=False))
+
+                # current_time 超过 3 分钟后自动划走（非 live 场景）
+                if st.get("has_video") and not bot.is_live_url(cur_url):
+                    try:
+                        ct = float(st.get("current_time", 0.0) or 0.0)
+                    except Exception:
+                        ct = 0.0
+                    now = time.time()
+                    cooldown = max(2.0, float(args.check_interval))
+                    if ct >= max_watch_sec and (now - last_force_swipe_ts) >= cooldown:
+                        logger.info("current_time=%.1fs 超过 %.0fs，自动划走到下一条", ct, max_watch_sec)
+                        bot.swipe_next()
+                        last_force_swipe_ts = now
+                        # 划走后让下一轮重新观察 URL 稳定变化
+                        stable_url = bot.safe_current_url()
+                        stable_count = 0
+                        continue
 
                 # URL 去抖：必须连续出现 2 次才认为已“稳定切换”
                 if cur_url == stable_url:

@@ -112,17 +112,14 @@ def _setup_logger(log_dir: Path) -> logging.Logger:
 def _maybe_send_like(bot: DouyinBot, max_wait:float, logger: logging.Logger) -> int:
     """
     根据视频时长和随机概率决定是否点赞。
-    - 短于 10s：不点赞。
-    - 长于 10s：49% 概率点赞。
+    - 短于20s：不点赞。
+    - 其余：49% 概率点赞。
     
     如果决定点赞，会先调用 _simulate_watch 观看一段时间，然后执行点赞动作。
     返回 1 表示尝试了点赞，0 表示未点赞。
     """
     dur = _get_duration_sec(bot, wait_sec=2.0)
-    # 根据视频时长决定点赞概率：
-    # - 10秒以下的短视频：不点赞（可能是广告或低质量内容）
-    # - 其余时长：49% 概率点赞
-    if dur < 10:
+    if dur < 20:
         p = 0.0
         return 0
     else:
@@ -138,13 +135,13 @@ def _maybe_send_like(bot: DouyinBot, max_wait:float, logger: logging.Logger) -> 
         _simulate_watch(bot, max_wait, logger)
         logger.info("点赞：命中概率：prob=%.2f roll=%.4f（尝试发送）", p, roll)
         ok = bot.like_current_video()
-        logger.info("点赞%s", "已尝试发送" if ok else "未发送")
+        logger.info("点赞结果：%s", "已尝试发送" if ok else "未发送")
         if ok: 
             return 1
         else:
             return 0
     except Exception as e:
-        logger.info("点赞：发送异常（%s: %s）", type(e).__name__, e)
+        logger.info("点赞结果：发送异常（%s: %s）", type(e).__name__, e)
         return 0
 
 
@@ -168,13 +165,13 @@ def _maybe_send_danmaku(bot: DouyinBot, text: str, *, prob: float, logger: loggi
     try:
         logger.info("弹幕：命中概率：prob=%.2f roll=%.4f（尝试发送）", p, roll)
         ok = bot.send_danmaku(str(text))
-        logger.info("弹幕：%s", "已尝试发送" if ok else "未找到输入框/未发送")
+        logger.info("弹幕结果：%s", "已尝试发送" if ok else "未找到输入框/未发送")
         if ok: 
             return 1
         else:
             return 0
     except Exception as e:
-        logger.info("弹幕：发送异常（%s: %s）", type(e).__name__, e)
+        logger.info("弹幕结果：发送异常（%s: %s）", type(e).__name__, e)
         return 0
 
 
@@ -197,13 +194,13 @@ def _maybe_send_comment(bot: DouyinBot, text: str, *, prob: float, logger: loggi
     try:
         logger.info("评论：命中概率：prob=%.2f roll=%.4f（尝试发送）", p, roll)
         ok = bot.send_comment(str(text))
-        logger.info("评论：%s", "已成功发送并验证" if ok else "发送失败或未验证")
+        logger.info("评论结果：%s", "已成功发送并验证" if ok else "发送失败或未验证")
         if ok: 
             return 1
         else:
             return 0
     except Exception as e:
-        logger.info("评论：发送异常（%s: %s）", type(e).__name__, e)
+        logger.info("评论结果：发送异常（%s: %s）", type(e).__name__, e)
         return 0
 
 
@@ -269,7 +266,7 @@ def _simulate_watch(bot: DouyinBot, max_wait: float, logger: logging.Logger) -> 
     """
     模拟人类观看：在进行互动（点赞/评论/弹幕）之前，随机等待一段时间。
     策略：
-    - 视频时长 < 5s：观看大部分时长（50%~90%）
+    - 视频时长 < 5s：观看大部分时长（40%~80%）
     - 视频时长 >= 5s：随机观看 5s ~ max_wait（但不超过视频剩余时长）
     """
     dur = _get_duration_sec(bot, wait_sec=5.0)
@@ -279,17 +276,15 @@ def _simulate_watch(bot: DouyinBot, max_wait: float, logger: logging.Logger) -> 
     
     if dur > 0.1:
         if dur < 5.0:
-            # 极短视频：观看 50% ~ 90% (按实际播放时长算)
-            wait_time = dur * random.uniform(0.5, 0.9)
+            wait_time = dur * random.uniform(0.4, 0.8)
         else:
-            # 正常/长视频：观看 5s ~ 2min，且不超过 real_duration * 0.9
-            upper = min(max_wait, dur * 0.9)
+            upper = min(max_wait, dur * 0.8)
             if upper < min_wait:
                 upper = min_wait
             wait_time = random.uniform(min_wait, upper)
     else:
-        # 获取不到 duration，保守等待 5~10s
-        wait_time = random.uniform(5.0, 10.0)
+        # 获取不到 duration，保守等待 3~5s
+        wait_time = random.uniform(3.0, 5.0)
     
     logger.info("模拟观看：计划等待 %.2fs, duration=%.1fs...", wait_time, dur)
     
@@ -497,11 +492,11 @@ def main(argv: list[str] | None = None) -> None:
                     logger.info("点赞动作完成（累计=%d）", liked_count)
                     
                     # 2. 评论 
-                    commented_count += _maybe_send_comment(bot, get_text("comment"), prob=0.67, logger=logger)
+                    commented_count += _maybe_send_comment(bot, get_text("comment"), prob=0.47, logger=logger)
                     logger.info("评论动作完成（累计=%d）", commented_count)
                     
                     # 3. 弹幕 
-                    danmakued_count += _maybe_send_danmaku(bot, get_text("danmaku"), prob=0.46, logger=logger)
+                    danmakued_count += _maybe_send_danmaku(bot, get_text("danmaku"), prob=0.36, logger=logger)
                     logger.info("弹幕动作完成（累计=%d）", danmakued_count)
 
                     # 4. 点赞/双击后，抖音有时会暂停播放器；这里主动恢复播放

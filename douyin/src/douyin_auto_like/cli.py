@@ -238,7 +238,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="follow",
         help="follow=follow模式下全自动(点赞+弹幕+评论); danmaku/comment=单次发送; open=调试",
     )
-    p.add_argument("--video-url", default="", help="视频链接（必填）")
+    p.add_argument("--video-url", default="https://www.douyin.com/jingxuan?modal_id=7577987307542720243", help="视频链接")
     p.add_argument("--max-likes", type=int, default=10, help="点赞动作总数上限（>0 生效；达到后退出）")
     p.add_argument(
         "--restart-driver-on-change",

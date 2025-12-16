@@ -1,157 +1,106 @@
-## 抖音网页端自动互动助手（Python + Selenium，uv 管理）
+## 抖音网页端自动互动助手 (Douyin Auto Like)
 
-> 说明：抖音网页端会有风控/验证码/弹窗等不可控因素，本项目不做“绕过风控”。脚本默认使用**人工扫码登录**，并通过 Chrome Profile 复用登录态。如遇安全验证，脚本会暂停并提示人工处理。
+这是一个基于 Python + Selenium 的抖音网页端自动化工具，用于模拟人工操作进行视频互动（点赞、评论、弹幕）。支持 Windows 本地一键打包部署。
 
-### 环境准备
+### 功能特点
 
-- **Chrome 浏览器**
-- **Python >= 3.10**
-- **uv**（包管理/运行）
+1.  **自动点赞**：双击视频区域点赞，支持基于视频时长的概率控制（短视频跳过，长视频低频，中等时长高频）。
+2.  **自动弹幕**：从加密的数据文件中随机读取弹幕内容发送（默认概率 0.46）。
+3.  **自动评论**：从加密的数据文件中随机读取评论内容发送，精准定位编辑器，支持自动验证（默认概率 0.67）。
+4.  **模拟真人**：
+    -   随机观看时长（不看完、中途划走）。
+    -   随机互动概率（不是每个视频都点赞/评论）。
+    -   操作间隔随机化。
+5.  **Follow 模式**：全自动刷视频模式，监控页面 URL 变化，对新视频执行互动策略，自动划走。
+6.  **安全验证处理**：自动检测验证码弹窗并暂停，提示人工介入处理。
+7.  **数据加密**：评论和弹幕数据文件使用 XOR + Base64 加密存储，防止明文泄露。
 
-#### Windows（PowerShell）快速安装/修复 `uv` 找不到
+### 目录结构
 
-如果你执行 `uv sync` / `uv run ...` 提示 “无法将 uv 项识别为 cmdlet”，通常是 **uv 未安装** 或 **安装后未重启 PowerShell 导致 PATH 未刷新**。
-
-在 PowerShell 里执行：
-
-```powershell
-# 安装 Python（>=3.10）与 uv
-winget install -e --id Python.Python.3.12 --silent --accept-package-agreements --accept-source-agreements
-winget install -e --id astral-sh.uv       --silent --accept-package-agreements --accept-source-agreements
-
-# 不重启终端也能生效：刷新当前会话 PATH
-$machine=[Environment]::GetEnvironmentVariable('Path','Machine')
-$user=[Environment]::GetEnvironmentVariable('Path','User')
-$env:Path="$machine;$user"
-
-# 验证
-uv --version
-python --version
+```
+local_service/
+├── data/                   # 数据文件目录
+│   ├── comments.enc        # 加密后的评论库
+│   ├── danmaku.enc         # 加密后的弹幕库
+│   ├── comments.txt        # (开发用/源文件) 明文评论库
+│   └── danmaku.txt         # (开发用/源文件) 明文弹幕库
+├── dist/                   # 打包后的可执行文件目录 (构建后生成)
+├── logs/                   # 运行日志
+├── src/                    # 源代码
+│   └── douyin_auto_like/
+│       ├── cli.py          # 入口与主逻辑
+│       ├── douyin.py       # 页面交互逻辑封装
+│       └── browser.py      # 浏览器驱动封装
+├── scripts/                # 工具脚本
+│   └── encrypt_data.py     # 数据加密脚本
+├── build_exe.bat           # Windows 一键打包脚本
+├── douyin_bot.spec         # PyInstaller 打包配置
+├── requirements.txt        # 依赖列表
+└── README_DEPLOY.md        # 部署与打包指南
 ```
 
-> 也可以直接 **关闭并重新打开 PowerShell**，让新 PATH 自动生效。
+### 快速开始 (开发环境)
 
-在 `local_service/` 目录执行：
+#### 1. 环境准备
+- Python >= 3.10
+- Google Chrome 浏览器
+- uv (推荐) 或 pip
+
+#### 2. 安装依赖
 
 ```bash
-cd /Users/xuejiao/Codes/yyy_monkey/local_service
+cd local_service
+# 使用 uv
 uv sync
+# 或者使用 pip
+pip install -r requirements.txt
 ```
 
-> 如果你还没创建虚拟环境，`uv sync` 会自动处理；也可以先 `uv venv` 再 `uv sync`。
+#### 3. 数据准备
 
-### 主要功能
+如果需要修改评论或弹幕内容：
+1. 编辑 `data/comments.txt` 或 `data/danmaku.txt`。
+2. 运行加密脚本重新生成 `.enc` 文件：
+   ```bash
+   python scripts/encrypt_data.py
+   ```
 
-1.  **自动点赞**：双击视频区域点赞（带概率控制与防重复策略）。
-2.  **自动弹幕**：发送自定义弹幕内容。
-3.  **自动评论**：精准定位 Draft.js 编辑器，支持占位符激活，自动发送并验证结果。
-4.  **模拟观看**：在互动前根据视频时长随机等待，模拟真实观看行为。
-5.  **Follow 模式**：持续监控页面 URL 变化（针对自动播放/滑走场景），对新视频执行互动。
-6.  **安全验证处理**：自动检测验证码弹窗并暂停，支持人工介入。
-
-### 用法
-
-#### 1）对“指定视频链接”点赞一次
+#### 4. 运行
 
 ```bash
-uv run douyin-like --video-url "https://www.douyin.com/video/xxxxxxxxxxxx"
+# 启动自动刷视频模式 (Follow 模式)
+# --manual-login 推荐首次使用时开启，方便手动扫码登录
+python src/douyin_auto_like/cli.py --video-url "https://www.douyin.com/video/xxxxxxxx" --manual-login
+
+# 仅发送一条弹幕
+python src/douyin_auto_like/cli.py --mode danmaku --video-url "..." --text "测试弹幕"
+
+# 查看帮助
+python src/douyin_auto_like/cli.py --help
 ```
 
-首次运行会打开浏览器，请你在弹出的抖音页面里**手动扫码登录**；脚本会把登录态保存在默认的 Chrome Profile（`local_service/.chrome_profile/`），下次无需重复登录。
+### 参数说明
 
-建议首次显式开启 `--manual-login`（脚本会暂停，等你扫码完成后继续）：
+- `--video-url`: **(必填)** 起始视频链接。
+- `--mode`: 运行模式，默认为 `follow` (全自动)。可选 `danmaku` (单发弹幕), `comment` (单发评论), `open` (仅打开浏览器调试)。
+- `--max-likes`: Follow 模式下点赞达到该数量后停止（默认 10）。
+- `--manual-login`: 启动后暂停，等待用户手动操作（如扫码登录）。
+- `--headless`: 无头模式运行（不显示浏览器界面，**首次登录不建议开启**）。
+- `--profile-dir`: 指定 Chrome Profile 目录，默认为项目下的 `.chrome_profile`。
+- `--verbose`: 输出详细调试日志。
+- `--seed`: 随机种子（复现用）。
+- `--restart-driver-on-change`: Follow 模式下，每次切换视频都重启浏览器（更慢但更稳定，用于规避某些风控）。
+- `--refresh-on-change`: Follow 模式下，每次切换视频都刷新页面。
 
-```bash
-uv run douyin-like --video-url "https://www.douyin.com/video/xxxxxxxxxxxx" --manual-login
-```
+### Windows 打包部署
 
-> 融合策略：在 `like` 模式下，当视频命中“点赞概率”进入点赞分支时，会再以 **62%** 的概率自动发送一条弹幕（默认“哇塞，赞赞赞”，可用 `--text` 自定义）。
+详情请参考 [README_DEPLOY.md](README_DEPLOY.md)。
 
-#### 2）自动发送一条弹幕（文本默认“哇塞，赞赞赞”）
-
-```bash
-uv run douyin-like --mode danmaku --video-url "https://www.douyin.com/video/xxxxxxxxxxxx" --manual-login
-```
-
-可自定义弹幕内容：
-
-```bash
-uv run douyin-like --mode danmaku --video-url "https://www.douyin.com/video/xxxxxxxxxxxx" --text "哇塞，赞赞赞" --manual-login
-```
-
-#### 3）自动发送一条评论（文本默认“好开心看到你的视频”）
-
-```bash
-uv run douyin-like --mode comment --video-url "https://www.douyin.com/video/xxxxxxxxxxxx" --manual-login
-```
-
-可自定义评论内容：
-
-```bash
-uv run douyin-like --mode comment --video-url "https://www.douyin.com/video/xxxxxxxxxxxx" --text "好开心看到你的视频" --manual-login
-```
-
-**功能说明**：
-- 脚本会自动寻找并点击评论图标打开评论区。
-- 如果评论输入框是折叠/占位符状态，脚本会自动点击激活，等待 Draft.js 编辑器渲染。
-- 支持发送后自动验证（检查评论列表中是否出现该文本）。
-- 全程支持验证码检测与暂停等待。
-
-#### 4）全自动互动模式（点赞 + 弹幕 + 评论）
-
-```bash
-uv run douyin-like --mode all --video-url "https://www.douyin.com/video/xxxxxxxxxxxx" --manual-login
-```
-
-**互动策略**：
-- **点赞**：命中“感兴趣”概率后必点。
-- **弹幕**：点赞成功后，以 **62%** 概率尝试发送。
-- **评论**：点赞成功后，以 **30%** 概率尝试发送。
-
-**关于文案**：
-- 如果你通过 `--text` 指定了内容，弹幕和评论都会使用这同一段文本。
-- 如果**不指定** `--text`（推荐），脚本会使用各自默认的文案：
-  - 弹幕：“哇塞，赞赞赞”
-  - 评论：“好开心看到你的视频”
-
-### 常用参数
-
-- `--profile-dir`：指定 Chrome Profile 目录（用于复用登录态）
-- `--headless`：无头模式（不建议用于首次登录）
-- `--interval`：每次操作间隔秒数（默认 2.0）
-- `--manual-login`：打开页面后暂停，等待你扫码/登录完成后继续
-- `--dump-cookies`：把 cookies 导出 JSON（排查登录态）
-- `--verbose`：输出更详细的执行日志
-- `--follow`：点赞后持续监控 URL（URL 变化则对新视频继续决策/点赞；遇到 live 跳过）
-- `--check-interval`：follow 模式 URL 检测间隔秒数（默认 5）
-- `--refresh-on-change`：follow 模式 URL 变化时先 `refresh` 再抓信息（轻量）
-- `--restart-driver-on-change`：follow 模式 URL 变化时重启 WebDriver（复用 profile，更慢但更稳）
-- `--max-likes`：点赞动作总数上限（>0 生效；达到后退出）
-
-### 点赞方式说明
-
-当前实现**只使用“双击视频区域”点赞**，不再尝试定位点赞按钮，也不会判断“是否已点赞”。
-如果你对已经点过赞的视频再次执行双击，可能会出现“重复触发/状态变化”的风险（以页面实际行为为准）。
-
-另外：在 **like 模式**下，若视频命中点赞决策（like-prob），会以 **62% 概率**自动尝试发送一条弹幕（文本用 `--text`，默认“哇塞，赞赞赞”）。
-
-### 点赞概率与播放速率策略
-
-- **点赞概率**：
-  - 10 秒以下：**0%**（直接跳过并滑走）
-  - 10 秒 ~ 3 分钟：**67%**
-  - 3 分钟以上：**34%**
-  - 未命中概率：不点赞并模拟“滑走下一条”
-- **播放速率**：固定 **1.5x**
-
-### 日志
-
-启动后会在 `local_service/logs/` 下按启动时间生成日志文件，并同步输出到终端。
-
-follow 模式每个 tick 会输出一行 `TICK {...}`（JSON），包含 URL、标题与视频时长/进度/倍速等关键字段，便于离线分析。
+简述：
+1. 确保安装 Python 和 Chrome。
+2. 双击运行 `local_service/build_exe.bat`。
+3. 分发 `local_service/dist/DouyinAutoLike` 文件夹。
 
 ### 免责声明
 
-仅供学习自动化测试/个人效率用途。请遵守平台规则与法律法规，避免高频操作造成账号风险。
-
-
+本工具仅供学习和技术研究使用。请勿用于任何商业用途或违反平台规则的行为。使用本工具产生的任何后果由使用者自行承担。

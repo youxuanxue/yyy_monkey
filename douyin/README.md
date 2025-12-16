@@ -18,7 +18,7 @@
 ### 目录结构
 
 ```
-local_service/
+douyin/
 ├── data/                   # 数据文件目录
 │   ├── comments.enc        # 加密后的评论库
 │   ├── danmaku.enc         # 加密后的弹幕库
@@ -49,7 +49,7 @@ local_service/
 #### 2. 安装依赖
 
 ```bash
-cd local_service
+cd douyin
 # 使用 uv
 uv sync
 # 或者使用 pip
@@ -98,8 +98,8 @@ python src/douyin_auto_like/cli.py --help
 
 简述：
 1. 确保安装 Python 和 Chrome。
-2. 双击运行 `local_service/build_exe.bat`。
-3. 分发 `local_service/dist/DouyinAutoLike` 文件夹。
+2. 双击运行 `douyin/build_exe.bat`。
+3. 分发 `douyin/dist/DouyinAutoLike` 文件夹。
 
 ### 免责声明
 

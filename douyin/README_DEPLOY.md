@@ -15,20 +15,20 @@
 
 ```bash
 # 在项目根目录下运行
-python local_service/scripts/encrypt_data.py
+python douyin/scripts/encrypt_data.py
 ```
-这将在 `local_service/data/` 目录下生成 `comments.enc` 和 `danmaku.enc`。
+这将在 `douyin/data/` 目录下生成 `comments.enc` 和 `danmaku.enc`。
 
 ## 2. 打包为 Windows 可执行程序 (exe)
 
 本项目已提供一键打包脚本 `build_exe.bat`。
 
-1. 进入 `local_service` 目录。
+1. 进入 `douyin` 目录。
 2. 双击运行 `build_exe.bat`。
    - 该脚本会自动创建虚拟环境、安装依赖、并执行 PyInstaller 打包。
 3. 等待脚本执行完毕。
 
-打包成功后，会在 `local_service/dist/` 目录下生成一个名为 `DouyinAutoLike` 的文件夹。
+打包成功后，会在 `douyin/dist/` 目录下生成一个名为 `DouyinAutoLike` 的文件夹。
 
 ## 3. 运行与分发
 

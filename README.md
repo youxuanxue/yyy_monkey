@@ -4,9 +4,9 @@
 
 ## 主要模块
 
-### [Local Service (本地自动化服务)](local_service/README.md)
+### [Douyin Service (本地自动化服务)](douyin/README.md)
 
-位于 `local_service/` 目录下。
+位于 `douyin/` 目录下。
 
 **功能：**
 - 全自动刷视频 (Follow 模式)
@@ -18,8 +18,8 @@
 **快速开始：**
 
 ```bash
-cd local_service
+cd douyin
 python src/douyin_auto_like/cli.py --help
 ```
 
-详细文档请参考：[local_service/README.md](local_service/README.md)
+详细文档请参考：[douyin/README.md](douyin/README.md)

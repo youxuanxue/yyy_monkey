@@ -96,7 +96,7 @@ def main() -> None:
                 logger.info("Not commenting this video.")
             
             # 3. 随机观看 (直到视频切换或超时)
-            watch_time = random.uniform(3.0, 60.0)
+            watch_time = random.uniform(3.0, 20.0)
             logger.info(f"Watching remaining video (waiting for scene change or {watch_time:.1f}s)...")
             time.sleep(watch_time)
         else:

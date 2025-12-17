@@ -6,7 +6,10 @@ a = Analysis(
     ['src/douyin_auto_like/cli.py'],
     pathex=['src'],
     binaries=[],
-    datas=[('data/*.enc', 'data')], 
+    datas=[
+        ('data/*.enc', 'data'),
+        ('license.lic', '.'),
+    ], 
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

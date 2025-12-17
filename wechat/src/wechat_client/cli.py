@@ -13,6 +13,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from wechat_client.core import BotCore
 from wechat_client.platform_mgr import PlatformManager
+from wechat_auto_like.license import verify_license
 
 def _setup_logger() -> logging.Logger:
     logging.basicConfig(
@@ -29,6 +30,9 @@ def _load_comments(data_dir: Path) -> list[str]:
     return ["支持博主", "感谢分享", "666"]
 
 def main() -> None:
+    # 1. 校验 License
+    verify_license()
+    
     parser = argparse.ArgumentParser(description="WeChat Client Auto Bot")
     parser.add_argument("--mode", choices=["run", "test_assets"], default="run", help="模式")
     parser.add_argument("--max-likes", type=int, default=10, help="点赞动作总数上限（>0 生效；达到后退出）")

@@ -1,5 +1,4 @@
 pyautogui>=0.9.54
 opencv-python>=4.8.0
-pyperclip>=1.8.2
 pillow>=10.0.0
-pyscreeze>=0.1.30
+pyinstaller>=6.0.0

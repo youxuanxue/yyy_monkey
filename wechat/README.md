@@ -1,74 +1,73 @@
-# WeChat Client Automation Bot
+## 微信视频号自动互动助手 (WeChat Auto Like)
 
-基于图像识别 (Computer Vision) 的微信 PC 客户端自动化助手。支持 Mac 和 Windows 双平台。
+这是一个基于图像识别 (PyAutoGUI + OpenCV) 的微信视频号 PC 端自动化工具，用于模拟人工操作进行视频互动。
 
-## 核心原理
+### 功能特点
 
-不同于 Web 版的 Selenium 方案，本项目采用 **Screen Capture + Image Recognition**：
-1.  **PyAutoGUI**: 控制鼠标点击、键盘输入、屏幕截图。
-2.  **OpenCV**: 在屏幕截图中寻找目标图标（如点赞爱心、评论输入框）。
-3.  **PyPerClip**: 使用系统剪贴板粘贴文本（解决中文输入问题）。
+1.  **图像识别定位**：不依赖 DOM 或 API，完全基于屏幕截图匹配 UI 元素（如点赞图标、评论按钮等），抗干扰能力强。
+2.  **自动点赞**：识别空心点赞图标并执行点击。
+3.  **自动评论**：识别评论输入框，随机发送预设评论。
+4.  **自动刷视频**：模拟鼠标滚轮滑动，自动切换到下一个视频。
+5.  **模拟真人**：随机观看时长、随机互动概率，避免机械式操作。
+6.  **License 验证**：支持生成和验证有时效限制的 License 文件。
 
-## 目录结构
+### 目录结构
 
 ```
 wechat/
-  ├── assets/            # 资源图片库 (必须手动截图填充!)
-  │   ├── mac/           # Mac 专用截图
-  │   └── win/           # Windows 专用截图
-  ├── data/
-  │   └── comments.txt   # 评论语料库
-  ├── src/
-  │   └── wechat_client/
-  │       ├── core.py    # 视觉识别与动作核心
-  │       ├── cli.py     # 命令行入口
-  │       └── platform_mgr.py # 平台适配 (Ctrl vs Cmd)
-  └── ...
+├── assets/                 # 图像资源库 (用于匹配的 UI 截图)
+│   ├── mac/                # macOS 资源
+│   └── win/                # Windows 资源
+├── data/                   # 数据文件目录
+│   └── comments.txt        # 评论库
+├── dist/                   # 打包后的可执行文件目录 (构建后生成)
+├── src/                    # 源代码
+│   ├── wechat_client/      # 核心逻辑
+│   └── wechat_auto_like/   # 公共组件 (License等)
+├── scripts/                # 工具脚本
+│   └── gen_license.py      # License 生成脚本
+├── build_exe.bat           # Windows 一键打包脚本
+├── wechat_bot.spec         # PyInstaller 打包配置
+├── requirements.txt        # 依赖列表
+└── README_DEPLOY.md        # 部署与打包指南
 ```
 
-## 准备工作 (至关重要!)
+### 快速开始 (开发环境)
 
-由于是基于“所见即所得”的图像识别，你必须**在你的电脑上截取并保存**以下图标到 `wechat/assets/mac/` (或 `win/`) 目录下。
+#### 1. 环境准备
+- Python >= 3.10
+- PC 端微信
 
-**文件名必须严格一致 (PNG格式):**
-
-1.  `like_empty.png`: 未点赞时的爱心图标 (通常是空心或白色)。
-2.  `like_filled.png`: 已点赞时的爱心图标 (红色，用于跳过)。
-3.  `comment_icon.png`: 视频右侧的评论气泡图标 (用于展开侧边栏)。
-4.  `comment_input.png`: 评论输入框的特征区域 (如灰色的“写评论...”文字区域)。
-5.  `send_btn.png`: 评论输入框旁边的“发送”按钮。
-
-**截图技巧:**
-*   截图范围不要太大，只截取图标本身和少量背景。
-*   保持截图时的微信窗口大小与运行时一致（避免图标缩放）。
-*   Mac 用户：推荐使用 `Cmd+Shift+4` 截图。
-
-## 安装
+#### 2. 安装依赖
 
 ```bash
 cd wechat
 pip install -r requirements.txt
 ```
 
-## 运行
+#### 3. 资源准备
+由于不同分辨率下微信图标可能不同，建议先运行测试模式检查识别率。如果识别失败，需要重新截图覆盖 `assets` 目录下的图片。
 
-1.  打开微信电脑版，进入视频号窗口。
-2.  在终端运行：
-
+#### 4. 生成 License
 ```bash
-# 测试图片识别 (调试模式)
-python -m src.wechat_client.cli --mode test_assets
-
-# 开始自动刷视频 (默认模式)
-python -m src.wechat_client.cli --count 20
+python scripts/gen_license.py --days 3
 ```
 
-3.  **迅速切换回微信视频号窗口**，不要遮挡。
+#### 5. 运行
 
-## Mac 权限说明
+```bash
+python src/wechat_client/cli.py
+```
+启动后，程序会倒计时 5 秒。请在倒计时结束前切换到**微信视频号窗口**。
 
-首次运行时，macOS 会弹窗请求权限，请务必在“系统设置 -> 隐私与安全性”中授予 Terminal (或 Cursor/VSCode) 以下权限：
-*   **屏幕录制 (Screen Recording)**: 用于截图识别。
-*   **辅助功能 (Accessibility)**: 用于控制鼠标点击。
+### Windows 打包部署
 
-如果没有授权，程序将报错或无法点击。
+详情请参考 [README_DEPLOY.md](README_DEPLOY.md)。
+
+简述：
+1. 双击运行 `build_exe.bat`。
+2. 分发 `dist/WeChatAutoLike` 文件夹。
+
+### 免责声明
+
+本工具仅供学习和技术研究使用。请勿用于任何商业用途或违反平台规则的行为。使用本工具产生的任何后果由使用者自行承担。

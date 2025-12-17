@@ -1,0 +1,23 @@
+[project]
+name = "wechat-client-auto"
+version = "0.1.0"
+description = "Automate WeChat Desktop Client (Mac/Win) for Channel interactions using Computer Vision."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "pyautogui>=0.9.54",
+  "opencv-python>=4.8.0",
+  "pyperclip>=1.8.2",
+  "pillow>=10.0.0",
+  "pyscreeze>=0.1.30" 
+]
+
+[project.scripts]
+wechat-bot = "wechat_client.cli:main"
+
+[build-system]
+requires = ["hatchling>=1.24.2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/wechat_client"]

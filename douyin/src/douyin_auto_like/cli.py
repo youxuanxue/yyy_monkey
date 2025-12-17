@@ -16,6 +16,7 @@ from pathlib import Path
 
 from douyin_auto_like.browser import ChromeConfig, build_chrome_driver, safe_quit
 from douyin_auto_like.douyin import DouyinBot, RunConfig
+from douyin_auto_like.license import verify_license
 
 # ---------------------------------------------------------------------------
 # 评论/弹幕文本库加载
@@ -328,6 +329,9 @@ def get_text(for_what: str) -> str:
         return ""
 
 def main(argv: list[str] | None = None) -> None:
+    # 1. 校验 License
+    verify_license()
+    
     args = build_parser().parse_args(argv)
 
     # 日志：按启动时间创建文件，并同步输出到终端

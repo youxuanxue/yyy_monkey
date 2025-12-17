@@ -19,34 +19,41 @@ python douyin/scripts/encrypt_data.py
 ```
 这将在 `douyin/data/` 目录下生成 `comments.enc` 和 `danmaku.enc`。
 
+### 许可证生成 (License)
+
+项目引入了简单的 License 验证机制。分发给用户前，需要生成 `license.lic` 文件。
+
+```bash
+# 生成一个有效期为 3 天的 license
+python douyin/scripts/gen_license.py --days 3
+
+# 或者生成 30 天
+python douyin/scripts/gen_license.py --days 30
+```
+生成的 `license.lic` 文件会默认放在 `douyin/` 根目录下。
+**注意**：`license.lic` 必须存在且在有效期内，程序才能运行。
+
 ## 2. 打包为 Windows 可执行程序 (exe)
 
 本项目已提供一键打包脚本 `build_exe.bat`。
 
 1. 进入 `douyin` 目录。
-2. 双击运行 `build_exe.bat`。
+2. 确保 `license.lic` 文件已生成并存在于当前目录（它会被打包进去，或者你可以选择不打包让用户手动放置，当前配置默认会将根目录的 license.lic 打包进去作为默认试用）。
+3. 双击运行 `build_exe.bat`。
    - 该脚本会自动创建虚拟环境、安装依赖、并执行 PyInstaller 打包。
-3. 等待脚本执行完毕。
+4. 等待脚本执行完毕。
 
 打包成功后，会在 `douyin/dist/` 目录下生成一个名为 `DouyinAutoLike` 的文件夹。
 
 ## 3. 运行与分发
 
-### 启动程序
-打开 `dist/DouyinAutoLike` 文件夹，双击运行 `DouyinAutoLike.exe` 即可（它是命令行程序，会弹出一个黑框终端）。
-
-**注意**：由于这是一个命令行工具，直接双击运行可能会因为没有参数而迅速关闭（虽然代码里有默认参数，但通常建议通过 CMD/PowerShell 运行以查看日志）。
-推荐方式：
-1. 在文件夹地址栏输入 `cmd` 并回车，打开终端。
-2. 输入 `DouyinAutoLike.exe --help` 查看帮助。
-3. 输入 `DouyinAutoLike.exe --video-url "你的视频链接"` 开始运行。
-
 ### 文件结构
 分发给用户时，请打包整个 `DouyinAutoLike` 文件夹：
 - `DouyinAutoLike.exe`: 主程序
-- `data/`: 存放加密后的数据文件 (`*.enc`)。用户如果需要更新话术，可以使用 `encrypt_data.py` 生成新的 enc 文件替换这里的同名文件。
-- `logs/`: 程序运行日志会自动保存在这里。
-- `.chrome_profile/`: 程序首次运行后会自动生成此目录，用于保存登录状态（Cookie 等）。
+- `license.lic`: 许可证文件（如果过期，用户需要向你索要新的文件并替换此文件）。
+- `data/`: 存放加密后的数据文件 (`*.enc`)。
+- `logs/`: 程序运行日志。
+- `.chrome_profile/`: 用户数据目录。
 
 ## 4. 常见问题
 

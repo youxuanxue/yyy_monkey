@@ -1,0 +1,17 @@
+[
+    {
+        "keywords": ["亲子", "育儿", "孩子", "母婴","家庭教育", "父母"],
+        "like_prob": 0.8,
+        "comment_file": "comments_parenting.txt"
+    },
+    {
+        "keywords": ["教育","学生", "学习", "学校", "老师", "高考", "中考", "知识", "课堂", "读书"],
+        "like_prob": 0.9,
+        "comment_file": "comments_education.txt"
+    },
+    {
+        "keywords": ["搞笑", "段子", "开心"],
+        "like_prob": 0.1,
+        "comment_file": "comments_default.txt"
+    }
+]

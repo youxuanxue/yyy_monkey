@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import os
+# 禁用 tokenizers 并行，避免 fork 后的警告
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 import argparse
 import logging
 from math import log
@@ -13,7 +17,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from wechat_client.core import BotCore
 from wechat_client.platform_mgr import PlatformManager
-from wechat_auto_like.license import verify_license
+from wechat_client.license import verify_license
 
 def _setup_logger() -> logging.Logger:
     logging.basicConfig(
@@ -24,9 +28,17 @@ def _setup_logger() -> logging.Logger:
     return logging.getLogger("wechat-bot")
 
 def _load_comments(data_dir: Path) -> list[str]:
-    p = data_dir / "comments.txt"
+    # 优先加载 comments_default.txt
+    p = data_dir / "comments_default.txt"
+    if not p.exists():
+        p = data_dir / "comments.txt"
+        
     if p.exists():
-        return [line.strip() for line in p.read_text(encoding="utf-8").splitlines() if line.strip()]
+        try:
+            return [line.strip() for line in p.read_text(encoding="utf-8").splitlines() if line.strip()]
+        except Exception as e:
+            logging.error(f"Failed to load comments from {p}: {e}")
+
     return ["支持博主", "感谢分享", "666"]
 
 def main() -> None:
@@ -45,7 +57,9 @@ def main() -> None:
     # 假设 wechat 目录是当前工作目录或上级目录
     # 运行时建议在 wechat/ 根目录下运行 python -m src.wechat_client.cli
     base_dir = Path.cwd()
-    if (base_dir / "wechat").exists():
+    
+    # 智能判断根目录：如果当前目录下没有 assets 但有 wechat 目录，则进入 wechat 目录
+    if not (base_dir / "assets").exists() and (base_dir / "wechat").exists():
         base_dir = base_dir / "wechat"
     
     asset_dir = base_dir / "assets"
@@ -60,33 +74,45 @@ def main() -> None:
     if args.mode == "test_assets":
         logger.info("Testing asset recognition... Please open WeChat Channels window.")
         time.sleep(5)
-        for img in ["like_empty.png", "like_filled.png", "comment_input.png", "send_btn.png", "comment_icon.png"]:
+        for img in ["like_empty.png", "like_filled.png", "comment_input.png", "send_btn.png", "comment_icon.png", "follow_btn.png"]:
             pos = bot._locate(img)
             res = "FOUND" if pos else "NOT FOUND"
             logger.info(f"Asset '{img}': {res} {pos if pos else ''}")
         return
 
-    logger.info("Auto Mode starting in 5 seconds... Switch to WeChat NOW!")
-    time.sleep(5)
+    logger.info("Auto Mode starting ... Switch to WeChat NOW!")
 
     comments = _load_comments(data_dir)
 
     liked_count = 0
     commented_count = 0
     while liked_count < int(args.max_likes):
+        topic_text = bot.get_video_topic()
+        
+        # 计算点赞概率和推荐评论
+        like_prob, topic_comments = bot.get_topic_match(topic_text)
+        logger.info(f"Like Probability: {like_prob}")
+
         # 1. 尝试点赞
-        if random.random() < 0.49:
-            watch_time = random.uniform(3.0, 10.0)
+        if random.random() < like_prob:
+            watch_time = random.uniform(2.0, 6.0)
             logger.info(f"点赞前：Watching for {watch_time:.1f}s...") 
             time.sleep(watch_time)
             bot.like_current()
             liked_count += 1
-            logger.info(f"Liked this video, total: {liked_count}s")
+            logger.info(f"Liked this video, total: {liked_count}")
 
             # 2. 尝试评论 
-            if random.random() < 0.5:
-                txt = random.choice(comments)
-                watch_time = random.uniform(2.0, 6.0)
+            if random.random() < 0.7:
+                # 优先使用话题匹配的评论，否则使用默认评论库
+                if topic_comments and len(topic_comments) > 0:
+                    txt = random.choice(topic_comments)
+                    logger.info("Using topic-specific comment.")
+                else:
+                    txt = random.choice(comments)
+                    logger.info("Using default comment.")
+                    
+                watch_time = random.uniform(1.0, 4.0)
                 logger.info(f"评论前：Watching for {watch_time:.1f}s...")   
                 time.sleep(watch_time)
                 bot.send_comment(txt)
@@ -102,7 +128,7 @@ def main() -> None:
         else:
             logger.info("Not liking this video.")
             # 不点赞也随机观看 (短时间)
-            time.sleep(random.uniform(2.0, 6.0))
+            time.sleep(random.uniform(1.0, 4.0))
         
         # 滑动下一条
         bot.scroll_next()

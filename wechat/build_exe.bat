@@ -13,3 +13,5 @@ echo Build complete! Check dist/WeChatAutoLike folder.
 echo You can copy the 'dist/WeChatAutoLike' folder to any location to run.
 pause
 
+
+

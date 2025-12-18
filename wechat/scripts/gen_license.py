@@ -5,7 +5,7 @@ import time
 import argparse
 from pathlib import Path
 
-# 密钥 (必须与 src/wechat_auto_like/license.py 中一致)
+# 密钥 (必须与 src/wechat_client/license.py 中一致)
 SECRET_KEY = b"wechat-monkey-2025-trial-secret"
 
 def generate_license(days: int, output_path: Path):
@@ -51,4 +51,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
 

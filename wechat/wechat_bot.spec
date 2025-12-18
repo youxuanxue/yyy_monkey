@@ -13,6 +13,7 @@ a = Analysis(
     datas=[
         ('assets', 'assets'),
         ('data/*.txt', 'data'),
+        ('data/*.json', 'data'),
         ('license.lic', '.'),
     ],
     hiddenimports=[],
@@ -54,4 +55,6 @@ coll = COLLECT(
     upx_exclude=[],
     name='WeChatAutoLike',
 )
+
+
 

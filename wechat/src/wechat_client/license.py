@@ -19,7 +19,7 @@ def _get_license_path() -> Path:
         # exe 模式
         base_dir = Path(sys.executable).parent
     else:
-        # 开发模式：位于 wechat/src/wechat_auto_like/license.py -> parents[2] = wechat/
+        # 开发模式：位于 wechat/src/wechat_client/license.py -> parents[2] = wechat/
         base_dir = Path(__file__).resolve().parents[2]
     return base_dir / "license.lic"
 
@@ -78,4 +78,6 @@ def verify_license() -> None:
         logging.error(f"Unexpected error during license check: {e}")
         print("Error: Failed to verify license.")
         sys.exit(1)
+
+
 

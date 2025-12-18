@@ -127,8 +127,8 @@ class BotCore:
                                 max_similarity = sim
                                 best_match = item
                 
-                # 设定一个语义相似度阈值，例如 0.35
-                if max_similarity > 0.35 and best_match:
+                # 设定一个语义相似度阈值
+                if max_similarity > 0.5 and best_match:
                     logger.info(f"Best match: {best_match.get('keywords')}, Similarity: {max_similarity:.4f}")
                     return best_match.get("like_prob", default_prob), best_match.get("comments")
                     

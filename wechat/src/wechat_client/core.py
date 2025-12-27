@@ -3,23 +3,20 @@ from __future__ import annotations
 import logging
 import random
 import time
-import json
-import difflib
 from pathlib import Path
-from typing import Optional, Tuple, List, Dict, Any
+from typing import Optional
 
-import cv2
-import numpy as np
 import pyautogui
-from PIL import Image
 
 try:
-    from sentence_transformers import SentenceTransformer, util
-    HAS_SENTENCE_TRANSFORMERS = True
+    from cnocr import CnOcr
+    HAS_CNOCR = True
 except ImportError:
-    HAS_SENTENCE_TRANSFORMERS = False
+    HAS_CNOCR = False
+    CnOcr = None  # type: ignore
 
 from wechat_client.platform_mgr import PlatformManager
+from wechat_client.llm_client import LLMCommentGenerator
 
 # 配置 pyautogui 安全设置
 pyautogui.FAILSAFE = True  # 鼠标移动到角落触发异常
@@ -33,120 +30,25 @@ class BotCore:
         self.pm = pm
         self.confidence = 0.85  # 图像匹配置信度
         
-        # 向量模型相关
-        self.embedding_model = None
-        self.keyword_embeddings = {} # { keyword_str: tensor }
-        
-        if HAS_SENTENCE_TRANSFORMERS:
-            try:
-                # 使用轻量级中文模型
-                # 注意：首次运行会自动下载模型
-                self.embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-                logger.info("SentenceTransformer model loaded successfully.")
-            except Exception as e:
-                logger.warning(f"Failed to load SentenceTransformer model: {e}")
-        
-        self.topic_config = self._load_topic_config()
+        # LLM 评论生成器初始化
+        self.llm_generator = LLMCommentGenerator()
 
-    def _load_topic_config(self) -> List[Dict[str, Any]]:
-        """加载话题配置并预计算向量"""
-        logger.info("Loading topic config...")
-        # asset_dir = .../wechat/assets, parent = .../wechat
-        data_dir = self.asset_dir.parent / "data"
-        config_path = data_dir / "topic_config.json"
-        logger.info(f"Config path: {config_path}")
-        config = []
-        if config_path.exists():
-            try:
-                content = config_path.read_text(encoding="utf-8")
-                config = json.loads(content)
-                
-                # 预加载评论文件
-                for item in config:
-                    comment_file = item.get("comment_file")
-                    if comment_file:
-                        p = data_dir / comment_file
-                        if p.exists():
-                            item["comments"] = [line.strip() for line in p.read_text(encoding="utf-8").splitlines() if line.strip()]
-                        else:
-                            logger.warning(f"Comment file not found: {comment_file}")
-                
-                # 日志只打印关键词和概率，不打印具体的评论内容（太长）
-                log_config = []
-                for item in config:
-                    log_item = {k: v for k, v in item.items() if k != 'comments'}
-                    log_item['comments_count'] = len(item.get('comments', []))
-                    log_config.append(log_item)
-                logger.info(f"Topic config loaded: {json.dumps(log_config, ensure_ascii=False)}")
 
-            except Exception as e:
-                logger.error(f"Failed to load topic config: {e}")
-        
-        # 预计算关键词向量
-        if self.embedding_model and config:
-            logger.info("Pre-calculating keyword embeddings...")
-            for item in config:
-                keywords = item.get("keywords", [])
-                for kw in keywords:
-                    if kw not in self.keyword_embeddings:
-                        try:
-                            self.keyword_embeddings[kw] = self.embedding_model.encode(kw, convert_to_tensor=True)
-                        except Exception as e:
-                            logger.error(f"Failed to embed keyword '{kw}': {e}")
-        
-        return config
-
-    def get_topic_match(self, current_topic: str) -> Tuple[float, Optional[List[str]]]:
+    def generate_comment_with_llm(self, topic_text: str) -> Optional[str]:
         """
-        根据当前话题匹配配置，返回 (点赞概率, 推荐评论列表)。
-        优先使用向量语义相似度，降级使用字符串包含匹配。
-        """
-        default_prob = 0
-        default_comments = None
-
-        if not current_topic:
-            return default_prob, default_comments
-
-        max_similarity = 0.0
-        best_match = None
+        使用大模型根据 topic_text 的语义生成适合的评论。
+        要求：积极、正能量、含蓄地引导回访和关注。
+        大模型会根据话题内容自动判断是否需要邀请对方参与"#小小谋略家"活动。
         
-        # 1. 向量相似度匹配
-        if self.embedding_model and self.keyword_embeddings:
-            try:
-                topic_emb = self.embedding_model.encode(current_topic, convert_to_tensor=True)
-                
-                for item in self.topic_config:
-                    keywords = item.get("keywords", [])
-                    
-                    for kw in keywords:
-                        if kw in self.keyword_embeddings:
-                            kw_emb = self.keyword_embeddings[kw]
-                            # 计算余弦相似度
-                            sim = util.pytorch_cos_sim(topic_emb, kw_emb).item()
-                            if sim > max_similarity:
-                                max_similarity = sim
-                                best_match = item
-                
-                # 设定一个语义相似度阈值
-                if max_similarity > 0.5 and best_match:
-                    logger.info(f"Best match: {best_match.get('keywords')}, Similarity: {max_similarity:.4f}")
-                    return best_match.get("like_prob", default_prob), best_match.get("comments")
-                    
-            except Exception as e:
-                logger.error(f"Vector similarity calculation failed: {e}")
+        Args:
+            topic_text: 视频话题文本
+            
+        Returns:
+            生成的评论文本，如果生成失败则返回 None
+        """
+        return self.llm_generator.generate_comment(topic_text)
 
-        # 2. 降级：简单关键词包含匹配
-        for item in self.topic_config:
-            keywords = item.get("keywords", [])
-            for keyword in keywords:
-                if keyword in current_topic:
-                    logger.info(f"Matched keyword (string match): '{keyword}'")
-                    return item.get("like_prob", default_prob), item.get("comments")
-                
-        logger.info(f"No specific topic matched. Using default settings.")
-        return default_prob, default_comments
-
-    def _locate_bounds(self, image_name: str, region: Optional[Tuple[int, int, int, int]] = None) -> Optional[Tuple[int, int, int, int]]:
+    def _locate_bounds(self, image_name: str, region: Optional[tuple[int, int, int, int]] = None) -> Optional[tuple[int, int, int, int]]:
         """
         查找图片并返回逻辑坐标包围盒 (x, y, w, h)。
         """
@@ -170,7 +72,7 @@ class BotCore:
             logger.error(f"Locate bounds error: {e}")
         return None
 
-    def _locate(self, image_name: str, region: Optional[Tuple[int, int, int, int]] = None) -> Optional[Tuple[int, int]]:
+    def _locate(self, image_name: str, region: Optional[tuple[int, int, int, int]] = None) -> Optional[tuple[int, int]]:
         """
         在屏幕上查找图片，返回中心坐标 (x, y)。
         image_name 不带路径，自动从 asset_dir/platform_name/ 下查找。
@@ -183,22 +85,26 @@ class BotCore:
 
     def get_video_topic(self) -> Optional[str]:
         """
-        根据 follow_btn 和 comment_icon 定位视频描述区域并进行 OCR 识别。
-        follow_btn: 左下参照
+        根据 follow_btn/followed_btn 和 comment_icon 定位视频描述区域并进行 OCR 识别。
+        follow_btn 或 followed_btn: 左下参照（优先尝试 follow_btn，如果找不到则尝试 followed_btn）
         comment_icon: 右下参照
         """
-        try:
-            from cnocr import CnOcr
-        except ImportError:
+        if not HAS_CNOCR:
             logger.error("cnocr module not found. Please install it.")
             return None
 
         # 1. 寻找坐标
+        # 优先尝试 follow_btn.png，如果找不到则尝试 followed_btn.png
         box_follow = self._locate_bounds("follow_btn.png")
+        if not box_follow:
+            box_follow = self._locate_bounds("followed_btn.png")
+            if box_follow:
+                logger.info("使用 followed_btn.png 作为左下参照")
+        
         box_comment = self._locate_bounds("comment_icon.png")
 
         if not box_follow or not box_comment:
-            logger.warning("无法找到识别锚点 (follow_btn or comment_icon)")
+            logger.warning("无法找到识别锚点 (follow_btn/followed_btn 或 comment_icon)")
             return None
 
         # 2. 计算区域

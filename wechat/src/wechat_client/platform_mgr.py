@@ -37,10 +37,6 @@ class PlatformManager:
             logger.warning(f"Failed to detect screen scale factor: {e}, using 1.0")
             self.scale_factor = 1.0
         
-        # 快捷键配置
-        self.key_copy = "command" if self.is_mac else "ctrl"
-        self.key_paste = "command" if self.is_mac else "ctrl"
-        self.key_select_all = "command" if self.is_mac else "ctrl"
     
     def copy_text(self, text: str) -> None:
         """写入剪贴板"""

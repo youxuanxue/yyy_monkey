@@ -1,0 +1,16 @@
+{
+  "include": [
+    "src",
+    "tests"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "**/node_modules"
+  ],
+  "extraPaths": [
+    "src"
+  ],
+  "pythonVersion": "3.10",
+  "typeCheckingMode": "basic"
+}
+

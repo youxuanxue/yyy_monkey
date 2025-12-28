@@ -31,7 +31,7 @@ def main() -> None:
     
     parser = argparse.ArgumentParser(description="WeChat Client Auto Bot")
     parser.add_argument("--mode", choices=["run", "test_assets"], default="run", help="模式")
-    parser.add_argument("--max-likes", type=int, default=10, help="点赞动作总数上限（>0 生效；达到后退出）")
+    parser.add_argument("--max-interactions", type=int, default=17, help="互动动作总数上限（>0 生效；达到后退出）")
     args = parser.parse_args()
     
     # 路径配置
@@ -64,11 +64,12 @@ def main() -> None:
 
     liked_count = 0
     commented_count = 0
+    interactived_count = 0
     consecutive_failures = 0  # 连续生成失败计数
     MAX_CONSECUTIVE_FAILURES = 3  # 最大连续失败次数
     INTERACTION_PROB = 0.43  # 互动概率阈值
 
-    while liked_count < int(args.max_likes):
+    while interactived_count < int(args.max_interactions):
         topic_text = bot.get_video_topic()
         interactived = False
         
@@ -113,6 +114,8 @@ def main() -> None:
             logger.info(f"❌Not commenting this video (prob={cur_prob:.1f}>={INTERACTION_PROB:.1f}).")
 
         if interactived: 
+            interactived_count += 1
+            logger.info(f"✅Interactived this video, total: {interactived_count}")
             # 3. 互动后随机观看 (直到视频切换或超时)
             watch_time = random.uniform(3.0, 20.0)
             logger.info(f"After interation, watching remaining video for {watch_time:.1f}s...")

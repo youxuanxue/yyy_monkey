@@ -67,7 +67,7 @@ def main() -> None:
     interactived_count = 0
     consecutive_failures = 0  # 连续生成失败计数
     MAX_CONSECUTIVE_FAILURES = 3  # 最大连续失败次数
-    INTERACTION_PROB = 0.43  # 互动概率阈值
+    INTERACTION_PROB = 0.37  # 互动概率阈值
 
     while interactived_count < int(args.max_interactions):
         topic_text = bot.get_video_topic()

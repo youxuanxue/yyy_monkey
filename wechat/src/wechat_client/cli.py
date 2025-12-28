@@ -67,7 +67,7 @@ def main() -> None:
     interactived_count = 0
     consecutive_failures = 0  # 连续生成失败计数
     MAX_CONSECUTIVE_FAILURES = 3  # 最大连续失败次数
-    INTERACTION_PROB = 0.37  # 互动概率阈值
+    INTERACTION_PROB = 0.31  # 互动概率阈值
 
     while interactived_count < int(args.max_interactions):
         topic_text = bot.get_video_topic()
@@ -78,13 +78,13 @@ def main() -> None:
         if cur_prob < INTERACTION_PROB:
             interactived = True
             watch_time = random.uniform(2.0, 6.0)
-            logger.info(f"点赞前(prob={cur_prob:.1f}<{INTERACTION_PROB:.1f})：Watching for {watch_time:.1f}s...") 
+            logger.info(f"点赞前(prob={cur_prob:.2f}<{INTERACTION_PROB:.2f})：Watching for {watch_time:.1f}s...") 
             time.sleep(watch_time)
             bot.like_current()
             liked_count += 1
             logger.info(f"✅Liked this video, total: {liked_count}")
         else:
-            logger.info(f"❌Not liking this video (prob={cur_prob:.1f}>={INTERACTION_PROB:.1f}).")
+            logger.info(f"❌Not liking this video (prob={cur_prob:.2f}>={INTERACTION_PROB:.2f}).")
         # 2. 尝试评论 
         cur_prob = random.random()
         if cur_prob < INTERACTION_PROB:
@@ -105,13 +105,13 @@ def main() -> None:
                 # 生成成功，重置失败计数
                 consecutive_failures = 0
                 watch_time = random.uniform(1.0, 4.0)
-                logger.info(f"评论前(prob={cur_prob:.1f}<{INTERACTION_PROB:.1f})：Watching for {watch_time:.1f}s...")   
+                logger.info(f"评论前(prob={cur_prob:.2f}<{INTERACTION_PROB:.2f})：Watching for {watch_time:.1f}s...")   
                 time.sleep(watch_time)
                 bot.send_comment(txt)
                 commented_count += 1
                 logger.info(f"✅Commented this video, total: {commented_count}")
         else:
-            logger.info(f"❌Not commenting this video (prob={cur_prob:.1f}>={INTERACTION_PROB:.1f}).")
+            logger.info(f"❌Not commenting this video (prob={cur_prob:.2f}>={INTERACTION_PROB:.2f}).")
 
         if interactived: 
             interactived_count += 1

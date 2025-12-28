@@ -65,8 +65,6 @@ def main() -> None:
     liked_count = 0
     commented_count = 0
     interactived_count = 0
-    consecutive_failures = 0  # 连续生成失败计数
-    MAX_CONSECUTIVE_FAILURES = 3  # 最大连续失败次数
     INTERACTION_PROB = 0.31  # 互动概率阈值
 
     while interactived_count < int(args.max_interactions):
@@ -88,22 +86,14 @@ def main() -> None:
         # 2. 尝试评论 
         cur_prob = random.random()
         if cur_prob < INTERACTION_PROB:
-            interactived = True
             # 使用大模型根据 topic_text 生成评论
             txt = bot.generate_comment_with_llm(topic_text)
             
-            # 如果大模型生成失败，跳过评论并记录失败次数
+            # 如果大模型生成失败，跳过评论
             if not txt:
-                consecutive_failures += 1
-                logger.warning(f"LLM comment generation failed (consecutive failures: {consecutive_failures}/{MAX_CONSECUTIVE_FAILURES}). Skipping comment.")
-                
-                # 如果连续失败达到上限，报错并退出
-                if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
-                    logger.error(f"LLM comment generation failed {MAX_CONSECUTIVE_FAILURES} times consecutively. Exiting.")
-                    sys.exit(1)
+                logger.warning("LLM comment generation failed. Skipping comment.")
             else:
-                # 生成成功，重置失败计数
-                consecutive_failures = 0
+                interactived = True
                 watch_time = random.uniform(1.0, 4.0)
                 logger.info(f"评论前(prob={cur_prob:.2f}<{INTERACTION_PROB:.2f})：Watching for {watch_time:.1f}s...")   
                 time.sleep(watch_time)

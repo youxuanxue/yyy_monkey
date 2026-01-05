@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 import random
+import re
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 import pyautogui
 
@@ -25,13 +26,31 @@ pyautogui.PAUSE = 0.5      # 默认操作间隔
 logger = logging.getLogger("wechat-bot")
 
 class BotCore:
-    def __init__(self, asset_dir: Path, pm: PlatformManager) -> None:
+    def __init__(self, asset_dir: Path, pm: PlatformManager, config_dir: Optional[Path] = None) -> None:
         self.asset_dir = asset_dir
         self.pm = pm
         self.confidence = 0.85  # 图像匹配置信度
         
+        # 确定配置文件路径
+        if config_dir is None:
+            # 尝试自动查找配置文件
+            possible_config_dirs = [
+                asset_dir.parent / "config",
+                Path.cwd() / "config",
+                Path.cwd() / "wechat" / "config",
+            ]
+            for possible_dir in possible_config_dirs:
+                config_file = possible_dir / "task_prompt.json"
+                if config_file.exists():
+                    config_dir = possible_dir
+                    break
+        
+        config_path = None
+        if config_dir:
+            config_path = config_dir / "task_prompt.json"
+        
         # LLM 评论生成器初始化
-        self.llm_generator = LLMCommentGenerator()
+        self.llm_generator = LLMCommentGenerator(config_path=config_path)
 
 
     def generate_comment_with_llm(self, topic_text: str) -> Optional[str]:
@@ -47,6 +66,31 @@ class BotCore:
             生成的评论文本，如果生成失败则返回 None
         """
         return self.llm_generator.generate_comment(topic_text)
+    
+    def generate_comment_from_task(
+        self,
+        video_description: str,
+        comments: List[str]=[],
+        persona: str = "yi_ba"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        根据 task_prompt.json 配置生成评论
+        
+        Args:
+            video_description: 视频描述文本
+            comments: 他人评论列表（最多取前3条）
+            persona: 角色名称，默认为 "yi_ba"，可选 "yi_ma"
+            
+        Returns:
+            生成的评论文本，如果生成失败或不符合条件，返回 None
+        """
+        result = self.llm_generator.generate_comment_from_task(
+            video_description=video_description,
+            comments=comments,
+            persona=persona
+        )
+        
+        return result
 
     def _locate_bounds(self, image_name: str, region: Optional[tuple[int, int, int, int]] = None) -> Optional[tuple[int, int, int, int]]:
         """
@@ -83,6 +127,49 @@ class BotCore:
             return (x + w // 2, y + h // 2)
         return None
 
+    def _normalize_text(self, text: str) -> str:
+        """
+        规范化文本，用于比较
+        去除所有空白字符（包括换行、空格、制表符等），只保留可见字符
+        """
+        if not text:
+            return ""
+        # 去除所有空白字符
+        return re.sub(r'\s+', '', text)
+    
+    def is_same_video(self, text1: str, text2: str) -> bool:
+        """
+        判断两个文本是否来自同一个视频
+        输入的文本应该已经是规范化后的文本
+        只比较前20个字符，使用宽松标准
+        
+        时间复杂度：O(1)，只比较固定长度的前缀
+        """
+        if not text1 or not text2:
+            return False
+        
+        # 只取前20个字符进行比较
+        prefix_len = 20
+        prefix1 = text1[:prefix_len]
+        prefix2 = text2[:prefix_len]
+        
+        # 如果前缀完全相同，认为是同一个视频
+        if prefix1 == prefix2:
+            return True
+        
+        # 如果其中一个前缀太短（少于5个字符），无法判断
+        if len(prefix1) < 5 or len(prefix2) < 5:
+            return False
+        
+        # 计算前20个字符的相似度（宽松标准）
+        # 允许最多30%的字符差异
+        min_prefix_len = min(len(prefix1), len(prefix2))
+        diff_count = sum(1 for i in range(min_prefix_len) if prefix1[i] != prefix2[i])
+        
+        # 如果差异数不超过30%，认为是同一个视频
+        similarity = 1.0 - (diff_count / min_prefix_len)
+        return similarity >= 0.7  # 70%相似度即可
+    
     def get_video_topic(self) -> Optional[str]:
         """
         根据 follow_btn/followed_btn 和 comment_icon 定位视频描述区域并进行 OCR 识别。
@@ -150,8 +237,11 @@ class BotCore:
             text_lines = [line['text'] for line in res]
             full_text = "\n".join(text_lines)
             
-            logger.info(f"Recognized Topic Text: {full_text}")
-            return full_text
+            # 规范化处理（去除所有空白字符）
+            normalized_text = self._normalize_text(full_text)
+            
+            logger.info(f"Recognized Topic Text: {normalized_text}")
+            return normalized_text
             
         except Exception as e:
             logger.error(f"OCR processing failed: {e}")
@@ -233,8 +323,8 @@ class BotCore:
     def like_current(self) -> bool:
         """
         点赞流程：
-        寻找“未点赞的爱心” (like_empty.png)。
-        如果找到“已点赞的爱心” (like_filled.png)，则跳过。
+        寻找"未点赞的爱心" (like_empty.png)。
+        如果找到"已点赞的爱心" (like_filled.png)，则跳过。
         """
         if self._locate("like_filled.png"):
             logger.info("Already liked. Skipping.")
@@ -246,13 +336,41 @@ class BotCore:
         
         logger.warning("Like button not found.")
         return False
+    
+    def follow_current(self) -> bool:
+        """
+        关注流程：
+        寻找"未关注的关注按钮" (follow_btn.png)。
+        如果找到"已关注的按钮" (followed_btn.png)，则跳过。
+        """
+        if self._locate("followed_btn.png"):
+            logger.info("Already followed. Skipping.")
+            return True # 视为成功
+        
+        if self.find_and_click("follow_btn.png"):
+            logger.info("Followed video creator.")
+            return True
+        
+        logger.warning("Follow button not found.")
+        return False
 
-    def scroll_next(self) -> None:
+    def scroll_next(self, min_watch_time: float = 1.0, max_watch_time: float = 5.0) -> None:
         """
         切换到下一个视频。
         简单粗暴：鼠标滚轮向下，或者键盘 Down 键。
         为保证焦点在视频区域，先点击一下中心（或视频区域特征）。
+        
+        Args:
+            min_watch_time: 滚动前随机播放的时间下限（秒），默认1秒
+            max_watch_time: 滚动前随机播放的时间上限（秒），默认5秒
         """
+
+        # 滚动前随机播放一段时间
+        watch_time = random.uniform(min_watch_time, max_watch_time)
+        if watch_time > 0:
+            logger.info(f"Watching video for {watch_time:.2f}s before scrolling...")
+            time.sleep(watch_time)
+
         # 假设屏幕中心是视频区
         w, h = pyautogui.size()
         pyautogui.moveTo(w // 2, h // 2)
@@ -267,4 +385,5 @@ class BotCore:
         
         # 或者使用键盘
         # pyautogui.press("down") 
-        time.sleep(1.5)
+        
+        

@@ -53,20 +53,6 @@ class BotCore:
         self.llm_generator = LLMCommentGenerator(config_path=config_path)
 
 
-    def generate_comment_with_llm(self, topic_text: str) -> Optional[str]:
-        """
-        使用大模型根据 topic_text 的语义生成适合的评论。
-        要求：积极、正能量、含蓄地引导回访和关注。
-        大模型会根据话题内容自动判断是否需要邀请对方参与"#小小谋略家"活动。
-        
-        Args:
-            topic_text: 视频话题文本
-            
-        Returns:
-            生成的评论文本，如果生成失败则返回 None
-        """
-        return self.llm_generator.generate_comment(topic_text)
-    
     def generate_comment_from_task(
         self,
         video_description: str,
@@ -82,7 +68,8 @@ class BotCore:
             persona: 角色名称，默认为 "yi_ba"，可选 "yi_ma"
             
         Returns:
-            生成的评论文本，如果生成失败或不符合条件，返回 None
+            包含 comment、real_human_score、follow_back_score、persona_consistency_score 的字典
+            如果生成失败或不符合条件，返回 None
         """
         result = self.llm_generator.generate_comment_from_task(
             video_description=video_description,
@@ -198,7 +185,7 @@ class BotCore:
         # 按照用户指示：follow_btn 为左下，comment_icon 为右下
         # 意味着描述区域在它们上方
         
-        # 左边界：follow_btn 的左边缘 (向左偏移 400px，但不能小于 0)
+        # 左边界：follow_btn 的左边缘 (向左偏移 200px，但不能小于 0)
         x_left = max(0, box_follow[0] - 200)
         # 右边界：comment_icon 的右边缘
         x_right = box_comment[0] + box_comment[2]
@@ -374,16 +361,10 @@ class BotCore:
         # 假设屏幕中心是视频区
         w, h = pyautogui.size()
         pyautogui.moveTo(w // 2, h // 2)
-        # pyautogui.click() # 慎点，可能会暂停视频
         
         logger.info("Scrolling to next video...")
         if self.pm.is_mac:
             # Mac 滚轮
             pyautogui.scroll(-5) 
         else:
-            pyautogui.scroll(-300) 
-        
-        # 或者使用键盘
-        # pyautogui.press("down") 
-        
-        
+            pyautogui.scroll(-300)

@@ -66,8 +66,6 @@ def verify_license() -> None:
             raise LicenseError(f"License expired on {expire_date}")
 
         # 验证通过
-        remaining_days = int((expire_ts - now_ts) / 86400)
-        # logging.info(f"License valid. Expires in {remaining_days} days.")
         return
 
     except LicenseError as e:

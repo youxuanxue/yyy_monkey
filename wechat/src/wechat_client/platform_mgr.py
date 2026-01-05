@@ -19,7 +19,6 @@ class PlatformManager:
     def __init__(self) -> None:
         self.os_name = platform.system()  # 'Darwin' or 'Windows'
         self.is_mac = self.os_name == "Darwin"
-        self.is_win = self.os_name == "Windows"
         
         # 屏幕缩放因子 (Retina 屏通常截图是 2x，但 pyautogui 点击坐标是 1x)
         # 默认 1.0，需要根据实际截图和屏幕表现调整。

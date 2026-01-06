@@ -30,7 +30,7 @@ def main() -> None:
     verify_license()
     
     parser = argparse.ArgumentParser(description="WeChat Client Auto Bot")
-    parser.add_argument("--mode", choices=["run", "test_assets"], default="run", help="模式")
+    parser.add_argument("--mode", choices=["run", "test_assets", "test_comments"], default="run", help="模式")
     parser.add_argument("--max-interactions", type=int, default=17, help="互动动作总数上限（>0 生效；达到后退出）")
     args = parser.parse_args()
     
@@ -59,6 +59,22 @@ def main() -> None:
             res = "FOUND" if pos else "NOT FOUND"
             logger.info(f"Asset '{img}': {res} {pos if pos else ''}")
         return
+    
+    if args.mode == "test_comments":
+        logger.info("测试获取历史评论功能... 请打开微信视频号评论窗口")
+        logger.info("倒计时 5 秒，请切换到评论页面...")
+        for i in range(5, 0, -1):
+            logger.info(f"{i}...")
+            time.sleep(1)
+        
+        comments = bot.get_history_comments(debug=True)
+        if comments:
+            logger.info(f"✅ 成功识别到 {len(comments)} 条评论:")
+            for i, comment in enumerate(comments, 1):
+                logger.info(f"  {i}. {comment}")
+        else:
+            logger.warning("❌ 未能识别到评论")
+        return
 
     logger.info("Auto Mode starting ... Switch to WeChat NOW!")
 
@@ -84,7 +100,6 @@ def main() -> None:
             continue
         
         interactived = False
-        should_comment = False
         should_follow = False
 
         # result 存在，继续处理
@@ -93,30 +108,33 @@ def main() -> None:
         persona_consistency_score = result.get("persona_consistency_score", 0.0)
         
         # 判断互动策略
-        # 当 persona_consistency_score < 0.7 或者 real_human_score < 0.8 时，只点赞不评论
-        if persona_consistency_score < 0.7 or real_human_score < 0.8:
+        # 当 persona_consistency_score < 0.8 或者 real_human_score < 0.8 时，跳过
+        if persona_consistency_score < 0.8 or real_human_score < 0.8:
             logger.info(
-                f"评分不达标 (consistency={persona_consistency_score:.2f}<0.7 或 "
-                f"real_human={real_human_score:.2f}<0.8)，只点赞不评论"
+                f"评分不达标 (consistency={persona_consistency_score:.2f}<0.8 或 "
+                f"real_human={real_human_score:.2f}<0.8)，跳过互动"
             )
+            bot.scroll_next()
+            continue
             
-        # 否则当 follow_back_score > 0.8 时，点赞+关注+评论
-        elif follow_back_score > 0.8:
-            logger.info(f"回关评分高 (follow_back={follow_back_score:.2f}>0.8)，点赞+关注+评论")
-            should_comment = True
+        # 否则当 follow_back_score > 0.85 时，点赞+关注+评论
+        if follow_back_score > 0.85:
+            logger.info(f"回关评分高 (follow_back={follow_back_score:.2f}>0.85)，点赞+关注+评论")
             should_follow = True
         else:
             # 其他情况：点赞+评论（不关注）
             logger.info(f"评分正常，点赞+评论（不关注）")
-            should_comment = True
         
-        # 1. 点赞
-        if bot.like_current():
-            liked_count += 1
-            interactived = True
-            logger.info(f"✅Liked this video, total: {liked_count}")
-        else:
-            logger.warning("点赞失败")
+        # 1. 评论（如果需要）- 优先执行，避免页面状态变化后无法获取视频描述
+        if result and result.get("comment"):
+            comment = result.get("comment")
+            # 直接发送评论，此时页面状态还未变化，不需要重新获取 topic_text
+            if comment and bot.send_comment(comment):
+                commented_count += 1
+                interactived = True
+                logger.info(f"✅Commented this video, total: {commented_count}")
+            else:
+                logger.warning("评论发送失败")
         
         # 2. 关注（如果需要）
         if should_follow:
@@ -127,27 +145,15 @@ def main() -> None:
                 logger.info("✅Followed video creator")
             else:
                 logger.warning("关注失败")
-        
-        # 3. 评论（如果需要）
-        if should_comment and result and result.get("comment"):
-            comment = result.get("comment")
-            # 写评论前，重新获取 topic_text，确保还在同一个视频（已规范化处理）
-            new_topic_text = bot.get_video_topic()
-            
-            if new_topic_text and bot.is_same_video(topic_text, new_topic_text):
-                # topic_text 一致，说明还在同一个视频，可以发送评论
-                if comment and bot.send_comment(comment):
-                    commented_count += 1
-                    interactived = True
-                    logger.info(f"✅Commented this video, total: {commented_count}")
-                else:
-                    logger.warning("评论发送失败")
-            else:
-                logger.warning(
-                    f"视频已切换==\n原:{topic_text}\n"
-                    f"新:{new_topic_text}\n"
-                    "==========跳过评论发送=========="
-                )
+
+        # 3. 点赞
+        if bot.like_current():
+            time.sleep(random.uniform(0.5, 2))
+            liked_count += 1
+            interactived = True
+            logger.info(f"✅Liked this video, total: {liked_count}")
+        else:
+            logger.warning("点赞失败")
 
         if interactived: 
             interactived_count += 1

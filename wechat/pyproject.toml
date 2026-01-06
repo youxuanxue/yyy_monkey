@@ -1,7 +1,7 @@
 [project]
-name = "wechat-client-auto"
+name = "wechat-bot"
 version = "0.1.0"
-description = "Automate WeChat Desktop Client (Mac/Win) for Channel interactions using Computer Vision."
+description = "Automate WeChat Desktop Client (Mac/Win) for Channel interactions using Computer Vision and LLM."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

@@ -199,22 +199,14 @@ class LLMCommentGenerator:
     
     def _load_task_config(self) -> None:
         """加载 task_prompt.json 配置文件"""
+        # 如果提供了 config_path，使用提供的路径
         if self.config_path is None:
-            # 尝试自动查找配置文件
-            # 优先查找当前工作目录下的 config/task_prompt.json
-            possible_paths = [
-                Path.cwd() / "config" / "task_prompt.json",
-                Path.cwd() / "wechat" / "config" / "task_prompt.json",
-                Path(__file__).resolve().parent.parent.parent / "config" / "task_prompt.json",
-            ]
-            
-            for path in possible_paths:
-                if path.exists():
-                    self.config_path = path
-                    break
+            # 如果没有提供路径，使用当前工作目录下的 config/task_prompt.json
+            self.config_path = Path.cwd() / "config" / "task_prompt.json"
         
-        if self.config_path is None or not self.config_path.exists():
-            logger.warning(f"Task prompt config file not found. Path: {self.config_path}")
+        # 检查文件是否存在
+        if not self.config_path.exists():
+            logger.warning(f"Task prompt config file not found: {self.config_path}")
             return
         
         try:
@@ -274,16 +266,15 @@ class LLMCommentGenerator:
                 return None
             
             # 格式化 user_prompt
-            # 取前3条评论，如果不足3条则用空字符串填充
-            comment_1 = comments[0] if len(comments) > 0 else ""
-            comment_2 = comments[1] if len(comments) > 1 else ""
-            comment_3 = comments[2] if len(comments) > 2 else ""
+            # 将评论列表格式化为编号列表字符串（最多取前3条）
+            user_comments_lines = []
+            for i, comment in enumerate(comments[:3], 1):
+                user_comments_lines.append(f"{i}.{comment}")
+            user_comments = "\n".join(user_comments_lines) if user_comments_lines else "（暂无评论）"
             
             user_prompt = user_prompt_template.format(
                 video_description=video_description,
-                comment_1=comment_1,
-                comment_2=comment_2,
-                comment_3=comment_3
+                user_comments=user_comments
             )
             
             # 获取模型名称

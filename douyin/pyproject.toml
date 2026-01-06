@@ -1,16 +1,17 @@
 [project]
-name = "douyin-auto-like"
+name = "douyin-bot"
 version = "0.1.0"
-description = "Douyin web auto-like using Selenium (manual login, reuse profile)."
+description = "抖音网页端智能互动助手，基于 LLM 评分自动决定是否点赞和评论。"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
   "selenium>=4.20.0",
   "pyinstaller>=6.0.0",
+  "openai>=1.0.0",  # LLM 客户端依赖
 ]
 
 [project.scripts]
-douyin-like = "douyin_auto_like.cli:main"
+douyin-bot = "douyin_auto_like.cli:main"
 
 [build-system]
 requires = ["hatchling>=1.24.2"]

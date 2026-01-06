@@ -1,8 +1,14 @@
+#!/usr/bin/env python3
+"""
+License 生成脚本
+"""
+from __future__ import annotations
+
+import argparse
 import base64
 import hashlib
 import hmac
 import time
-import argparse
 from pathlib import Path
 
 # 密钥 (必须与 src/douyin_auto_like/license.py 中一致)

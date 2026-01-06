@@ -25,6 +25,14 @@ pyautogui.PAUSE = 0.5      # 默认操作间隔
 
 logger = logging.getLogger("wechat-bot")
 
+# 评论过滤黑名单：包含这些关键词的文本将被过滤掉
+COMMENT_BLACKLIST = [
+    "小时前", "分钟前", "天前", "秒前",  # 时间相关
+    "条回复", "回复",  # 回复相关
+    "作者",  # 作者标签
+    "评论",  # 评论数量
+]
+
 class BotCore:
     def __init__(self, asset_dir: Path, pm: PlatformManager, config_dir: Optional[Path] = None) -> None:
         self.asset_dir = asset_dir
@@ -56,7 +64,7 @@ class BotCore:
     def generate_comment_from_task(
         self,
         video_description: str,
-        comments: List[str]=[],
+        comments: Optional[List[str]] = None,
         persona: str = "yi_ba"
     ) -> Optional[Dict[str, Any]]:
         """
@@ -64,16 +72,19 @@ class BotCore:
         
         Args:
             video_description: 视频描述文本
-            comments: 他人评论列表（最多取前3条）
+            comments: 他人评论列表（最多取前3条），如果为 None 则使用空列表
             persona: 角色名称，默认为 "yi_ba"，可选 "yi_ma"
             
         Returns:
             包含 comment、real_human_score、follow_back_score、persona_consistency_score 的字典
             如果生成失败或不符合条件，返回 None
         """
+        # 将 None 转换为空列表，以兼容底层方法
+        comments_list = comments if comments is not None else []
+        
         result = self.llm_generator.generate_comment_from_task(
             video_description=video_description,
-            comments=comments,
+            comments=comments_list,
             persona=persona
         )
         
@@ -232,6 +243,104 @@ class BotCore:
             
         except Exception as e:
             logger.error(f"OCR processing failed: {e}")
+            return None
+
+    def get_history_comments(self, debug: bool = False) -> Optional[List[str]]:
+        """
+        获取其他用户的历史评论。
+        使用 comment_upper_bound.png 作为上边界，comment_input.png 作为下边界。
+        在该区域内进行 OCR 识别，提取评论内容。
+        
+        Args:
+            debug: 是否启用调试模式，启用时会保存截图到 logs 目录
+        
+        Returns:
+            评论列表（已过滤黑名单关键词、包含数字的文本和8字以内文本），如果识别失败返回 None
+        """
+        if not HAS_CNOCR:
+            logger.error("cnocr module not found. Please install it.")
+            return None
+
+        # 1. 寻找边界坐标
+        box_upper = self._locate_bounds("comment_upper_bound.png")
+        box_lower = self._locate_bounds("comment_input.png")
+
+        if not box_upper or not box_lower:
+            logger.warning("无法找到评论区域边界 (comment_upper_bound.png 或 comment_input.png)")
+            return None
+
+        # 2. 计算评论区域
+        # 上边界：comment_upper_bound 的下边缘（bottom）
+        y_top = box_upper[1] + box_upper[3]
+        # 下边界：comment_input 的上边缘（top）
+        y_bottom = box_lower[1]
+        
+        # 左边界：取两个边界框的左边缘的最小值（更靠左的）
+        x_left = min(box_upper[0], box_lower[0]) - 85
+        # 右边界：取两个边界框的右边缘的最大值（更靠右的）
+        x_right = max(box_upper[0] + box_upper[2], box_lower[0] + box_lower[2])
+        
+        # 宽度和高度
+        width = x_right - x_left
+        height = y_bottom - y_top
+
+        if width <= 0 or height <= 0:
+            logger.warning(f"计算出的评论区域无效: width={width}, height={height}")
+            return None
+
+        # 3. 截图
+        region = (x_left, y_top, width, height)
+        logger.info(f"评论区域 OCR Region: {region}")
+
+        try:
+            # region is (left, top, width, height)
+            screenshot = pyautogui.screenshot(region=region)
+            
+            # 调试模式：保存截图到 logs 目录
+            if debug:
+                try:
+                    logs_dir = Path(__file__).parent.parent.parent.parent / "logs"
+                    logs_dir.mkdir(parents=True, exist_ok=True)
+                    timestamp = time.strftime("%Y%m%d_%H%M%S")
+                    screenshot_path = logs_dir / f"comment_region_{timestamp}.png"
+                    screenshot.save(str(screenshot_path))
+                    logger.info(f"[DEBUG] 评论区域截图已保存: {screenshot_path}")
+                except Exception as save_error:
+                    logger.warning(f"[DEBUG] 保存截图失败: {save_error}")
+            
+            # 4. OCR 识别
+            # 强制使用已下载的 v3 检测模型
+            ocr = CnOcr(det_model_name='ch_PP-OCRv3_det') 
+            res = ocr.ocr(screenshot)
+            
+            # 提取文本
+            text_lines = [line['text'] for line in res]
+            
+            # 过滤空文本、黑名单关键词、包含数字的文本和短文本（8个字以内）
+            def is_valid_comment(text: str) -> bool:
+                """判断文本是否为有效评论"""
+                text = text.strip()
+                if not text:
+                    return False
+                # 检查长度（8个字以内过滤）
+                if len(text) <= 8:
+                    return False
+                # 检查是否包含黑名单关键词
+                for keyword in COMMENT_BLACKLIST:
+                    if keyword in text:
+                        return False
+                # 检查是否包含数字
+                if re.search(r'\d', text):
+                    return False
+                return True
+            
+            comments = [text.strip() for text in text_lines if is_valid_comment(text)]
+            
+            logger.info(f"识别到 {len(comments)} 条评论（已过滤黑名单关键词、数字和8字以内文本）: {comments}")
+            return comments if comments else None
+            
+        except Exception as e:
+            logger.error(f"评论 OCR 处理失败: {e}")
             return None
 
     def _click_at(self, x: int, y: int, double: bool = False) -> None:

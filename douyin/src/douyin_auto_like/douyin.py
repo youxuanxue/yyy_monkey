@@ -2,16 +2,33 @@ from __future__ import annotations
 
 import json
 import logging
+import re
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, List, Any
 
 from selenium.webdriver import ActionChains, Keys
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
+
+# 导入 wechat 的 LLM 客户端（共用）
+try:
+    # 尝试从 wechat 项目导入 llm_client
+    wechat_src_path = Path(__file__).resolve().parent.parent.parent.parent / "wechat" / "src"
+    if wechat_src_path.exists():
+        sys.path.insert(0, str(wechat_src_path))
+    from wechat_client.llm_client import LLMCommentGenerator
+    HAS_LLM = True
+except ImportError as e:
+    HAS_LLM = False
+    LLMCommentGenerator = None  # type: ignore
+    # 记录导入失败的原因（仅在 verbose 模式下）
+    import logging
+    logging.getLogger("douyin-like").debug(f"Failed to import LLM client: {e}")
 
 
 DOUYIN_HOME = "https://www.douyin.com/"
@@ -25,17 +42,44 @@ class RunConfig:
 
 class DouyinBot:
     """
-    Douyin 网页端自动化：
+    抖音网页端自动化 Bot
+    
+    功能：
     - 支持打开首页/视频链接
     - 支持人工扫码登录后复用 Profile（由 browser.py 负责）
     - 支持对当前视频执行双击点赞、滑走切换到下一条、以及播放状态/倍速控制
+    - 支持基于 LLM 的智能评论生成（共用 wechat 的 llm_client）
+    - 支持视频描述提取和视频切换检测
+    - 支持自动发送评论
     """
 
-    def __init__(self, driver: WebDriver, cfg: RunConfig, *, verbose: bool = False) -> None:
+    def __init__(self, driver: WebDriver, cfg: RunConfig, *, verbose: bool = False, config_dir: Optional[Path] = None) -> None:
         self.driver = driver
         self.cfg = cfg
         self.wait = WebDriverWait(driver, cfg.wait_timeout_sec)
         self.verbose = verbose
+        
+        # 初始化 LLM 评论生成器
+        if HAS_LLM:
+            # 确定配置文件路径
+            if config_dir is None:
+                # 使用当前工作目录下的 config/task_prompt.json
+                config_dir = Path.cwd() / "config"
+            
+            config_path = config_dir / "task_prompt.json"
+            self.llm_generator = LLMCommentGenerator(config_path=config_path)
+            
+            # 检查 LLM 客户端是否真正可用
+            if not self.llm_generator.is_available():
+                logger = logging.getLogger("douyin-like")
+                logger.warning("LLM 客户端初始化失败，可能的原因：")
+                logger.warning("  1. Ollama 未安装或未启动（推荐：安装 Ollama 并运行 'ollama pull qwen2.5:3b'）")
+                logger.warning("  2. OpenAI 包未安装（运行 'uv add openai' 或 'pip install openai'）")
+                logger.warning("  3. 未设置 OPENAI_API_KEY 环境变量（如果使用 OpenAI API）")
+        else:
+            self.llm_generator = None
+            logger = logging.getLogger("douyin-like")
+            logger.warning("无法导入 LLM 客户端，请确保 wechat 模块的 llm_client.py 可访问")
 
     def _ts(self) -> str:
         return time.strftime("%H:%M:%S")
@@ -219,7 +263,7 @@ class DouyinBot:
                 continue
 
     # -------------------------
-    # 弹幕相关（自动发送）
+    # 弹幕相关（已废弃，保留代码以备将来需要）
     # -------------------------
     def _pick_best_visible(self, elements: list[WebElement]) -> Optional[WebElement]:
         best: Optional[WebElement] = None
@@ -299,11 +343,11 @@ class DouyinBot:
 
     def send_danmaku(self, text: str = "哇塞，赞赞赞") -> bool:
         """
-        自动发送一条弹幕：
-        - 定位输入框（优先 placeholder='发一条弹幕吧' / 包含“弹幕”）
-        - 填充文本
-        - 优先 Enter 提交，必要时点击“发送”按钮兜底
-        返回 True 表示已执行“输入+提交”动作；False 表示未找到输入框。
+        自动发送一条弹幕（已废弃，保留代码以备将来需要）。
+         - 定位输入框（优先 placeholder='发一条弹幕吧' / 包含"弹幕"）
+         - 填充文本
+         - 优先 Enter 提交，必要时点击"发送"按钮兜底
+        返回 True 表示已执行"输入+提交"动作；False 表示未找到输入框。
         """
         self.log("准备发送弹幕：尝试关闭可能的弹窗")
         self.maybe_close_popups()
@@ -404,6 +448,132 @@ class DouyinBot:
             except Exception:
                 continue
         return False
+
+    def _find_follow_button(self) -> Optional[WebElement]:
+        """
+        尝试定位"关注"按钮（已废弃，保留代码以备将来需要）。
+        说明：抖音 class 名常变，优先使用 data-e2e 语义属性或文本内容。
+        """
+        # 方法1: 使用 JavaScript 查找包含"关注"文本的按钮（最可靠的方法）
+        try:
+            btn = self.driver.execute_script("""
+                // 查找所有可能的按钮元素
+                const allElements = Array.from(document.querySelectorAll('button, [role="button"], div[class*="button"], span[class*="button"]'));
+                
+                // 首先查找包含"关注"文本的按钮
+                for (const el of allElements) {
+                    if (!el.offsetParent) continue; // 跳过不可见元素
+                    const text = (el.textContent || el.innerText || '').trim();
+                    if (text === '关注' || (text.includes('关注') && !text.includes('已关注'))) {
+                        // 如果是按钮，直接返回
+                        if (el.tagName === 'BUTTON' || el.getAttribute('role') === 'button') {
+                            return el;
+                        }
+                        // 如果不是按钮，向上查找按钮父元素
+                        let parent = el.parentElement;
+                        while (parent && parent !== document.body) {
+                            if (parent.tagName === 'BUTTON' || parent.getAttribute('role') === 'button') {
+                                if (parent.offsetParent) return parent;
+                            }
+                            parent = parent.parentElement;
+                        }
+                    }
+                }
+                
+                // 如果找不到，查找包含"关注"文本的 span，然后找其父级按钮
+                const spans = Array.from(document.querySelectorAll('span, div'));
+                for (const span of spans) {
+                    if (!span.offsetParent) continue;
+                    const text = (span.textContent || span.innerText || '').trim();
+                    if (text === '关注' || (text.includes('关注') && !text.includes('已关注'))) {
+                        let parent = span.parentElement;
+                        let depth = 0;
+                        while (parent && parent !== document.body && depth < 10) {
+                            if (parent.tagName === 'BUTTON' || parent.getAttribute('role') === 'button' || parent.onclick) {
+                                if (parent.offsetParent) return parent;
+                            }
+                            parent = parent.parentElement;
+                            depth++;
+                        }
+                    }
+                }
+                
+                // 最后尝试：查找包含 SVG 的按钮（关注按钮通常有 SVG 图标）
+                const svgs = Array.from(document.querySelectorAll('svg'));
+                for (const svg of svgs) {
+                    if (!svg.offsetParent) continue;
+                    // 检查 SVG 是否在按钮内
+                    let parent = svg.parentElement;
+                    let depth = 0;
+                    while (parent && parent !== document.body && depth < 10) {
+                        if (parent.tagName === 'BUTTON' || parent.getAttribute('role') === 'button') {
+                            // 检查这个按钮是否包含"关注"相关的文本
+                            const btnText = (parent.textContent || parent.innerText || '').trim();
+                            if (btnText.includes('关注') && !btnText.includes('已关注')) {
+                                if (parent.offsetParent) return parent;
+                            }
+                        }
+                        parent = parent.parentElement;
+                        depth++;
+                    }
+                }
+                
+                return null;
+            """)
+            if btn:
+                # 将 JS 对象转换为 WebElement
+                btn = self.driver.execute_script("return arguments[0];", btn)
+                if btn:
+                    self.log("[follow] 通过 JS 找到关注按钮")
+                    return btn
+        except Exception as e:
+            self.log(f"[follow] JS 查找失败：{e}")
+        
+        # 方法2: CSS 选择器
+        css_selectors = [
+            "[data-e2e='follow-button']",
+            "[data-e2e='follow']",
+            "[data-e2e*='follow']",
+            "button[class*='follow']",
+            "div[class*='follow']",
+        ]
+        for sel in css_selectors:
+            try:
+                els = self.driver.find_elements(By.CSS_SELECTOR, sel)
+                best = self._pick_best_visible(list(els))
+                if best is not None:
+                    # 检查按钮文本是否包含"关注"（排除"已关注"）
+                    try:
+                        text = best.text or ""
+                        if "关注" in text and "已关注" not in text:
+                            self.log(f"[follow] 找到关注按钮：selector={sel}, text={text}")
+                            return best
+                    except Exception:
+                        pass
+            except Exception:
+                continue
+        
+        # 方法3: XPath 选择器（基于文本内容）
+        xpath_selectors = [
+            "//button[normalize-space()='关注']",
+            "//button[contains(., '关注') and not(contains(., '已关注'))]",
+            "//*[@role='button' and normalize-space()='关注']",
+            "//*[@role='button' and contains(., '关注') and not(contains(., '已关注'))]",
+            "//span[normalize-space()='关注']/ancestor::button[1]",
+            "//span[contains(., '关注') and not(contains(., '已关注'))]/ancestor::button[1]",
+            "//span[normalize-space()='关注']/ancestor::*[@role='button'][1]",
+        ]
+        for xp in xpath_selectors:
+            try:
+                els = self.driver.find_elements(By.XPATH, xp)
+                best = self._pick_best_visible(list(els))
+                if best is not None:
+                    self.log(f"[follow] 找到关注按钮：xpath={xp}")
+                    return best
+            except Exception:
+                continue
+        
+        return None
 
     def _find_comment_icon(self) -> Optional[WebElement]:
         """
@@ -939,6 +1109,176 @@ class DouyinBot:
             return False
         return self.double_click_video_to_like()
     
+    def follow_current_creator(self) -> bool:
+        """
+        对当前视频的创作者执行"关注"（已废弃，保留代码以备将来需要）。
+        返回 True 表示已执行关注动作；False 表示未找到关注按钮或已关注。
+        """
+        self.log("准备关注：尝试关闭可能的弹窗")
+        self.maybe_close_popups()
+        try:
+            self.wait_dom_ready()
+        except Exception:
+            pass
+        time.sleep(0.2)
+        
+        # 先检查是否已关注（查找"已关注"按钮）
+        followed_selectors = [
+            "[data-e2e='followed-button']",
+            "//button[normalize-space()='已关注']",
+            "//button[contains(., '已关注')]",
+        ]
+        for sel in followed_selectors:
+            try:
+                if sel.startswith("//"):
+                    els = self.driver.find_elements(By.XPATH, sel)
+                else:
+                    els = self.driver.find_elements(By.CSS_SELECTOR, sel)
+                for el in els:
+                    if el.is_displayed() and el.is_enabled():
+                        self.log("[follow] 已关注，跳过")
+                        return True
+            except Exception:
+                continue
+        
+        # 查找并点击关注按钮
+        btn = self._find_follow_button()
+        if btn is None:
+            self.log("[follow] 未找到关注按钮")
+            # 尝试输出页面中所有按钮的文本，用于调试
+            try:
+                all_buttons = self.driver.find_elements(By.TAG_NAME, "button")
+                button_texts = []
+                for b in all_buttons[:20]:  # 只检查前20个按钮
+                    try:
+                        if b.is_displayed():
+                            text = b.text or ""
+                            if text:
+                                button_texts.append(text[:50])
+                    except Exception:
+                        pass
+                if button_texts:
+                    self.log(f"[follow] 页面中的按钮文本（前20个）：{button_texts}")
+            except Exception:
+                pass
+            return False
+        
+        try:
+            # 获取按钮信息用于日志
+            btn_text = ""
+            try:
+                btn_text = btn.text or ""
+            except Exception:
+                pass
+            self.log(f"[follow] 找到关注按钮，文本：{btn_text}")
+            
+            self.driver.execute_script("arguments[0].scrollIntoView({block:'center', inline:'center'})", btn)
+            time.sleep(0.3)
+        except Exception as e:
+            self.log(f"[follow] 滚动到按钮失败：{e}")
+        
+        # 点击前先关闭可能的弹窗
+        self.maybe_close_popups()
+        time.sleep(0.2)
+        
+        def _verify_followed() -> bool:
+            """验证是否真的关注了"""
+            try:
+                # 检查是否有"已关注"按钮
+                followed_els = self.driver.find_elements(By.XPATH, "//button[contains(., '已关注')]")
+                for el in followed_els:
+                    if el.is_displayed():
+                        return True
+                # 如果找不到"关注"按钮了，可能是已经关注了
+                new_btn = self._find_follow_button()
+                if new_btn is None:
+                    return True
+                return False
+            except Exception:
+                return False
+        
+        # 尝试使用 JS 直接点击（最可靠的方式）
+        try:
+            self.log("[follow] 尝试使用 JS 直接点击关注按钮")
+            # 先滚动到按钮
+            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'center'});", btn)
+            time.sleep(0.5)
+            
+            # 使用 JS 模拟真实的鼠标事件序列
+            self.driver.execute_script("""
+                const btn = arguments[0];
+                if (!btn) return false;
+                
+                // 获取按钮的位置
+                const rect = btn.getBoundingClientRect();
+                const x = rect.left + rect.width / 2;
+                const y = rect.top + rect.height / 2;
+                
+                // 创建并派发完整的鼠标事件序列（模拟真实点击）
+                const mouseEvents = [
+                    {type: 'mousedown', button: 0},
+                    {type: 'mouseup', button: 0},
+                    {type: 'click', button: 0}
+                ];
+                
+                for (const evtConfig of mouseEvents) {
+                    const evt = new MouseEvent(evtConfig.type, {
+                        view: window,
+                        bubbles: true,
+                        cancelable: true,
+                        clientX: x,
+                        clientY: y,
+                        button: evtConfig.button,
+                        buttons: evtConfig.type === 'mousedown' ? 1 : 0
+                    });
+                    btn.dispatchEvent(evt);
+                }
+                
+                // 也尝试直接调用 click（某些情况下更可靠）
+                try {
+                    btn.click();
+                } catch (e) {
+                    // 忽略错误
+                }
+                
+                return true;
+            """, btn)
+            
+            time.sleep(2.0)  # 增加等待时间，确保页面响应
+            if _verify_followed():
+                self.log("[follow] JS 点击成功，已关注")
+                return True
+            else:
+                self.log("[follow] JS 点击后验证失败")
+        except Exception as e:
+            self.log(f"[follow] JS 点击失败：{e}")
+        
+        # 尝试其他点击方式
+        click_methods = [
+            ("直接点击", lambda: btn.click()),
+            ("ActionChains 点击", lambda: ActionChains(self.driver).move_to_element(btn).click().perform()),
+            ("JS click()", lambda: self.driver.execute_script("arguments[0].click()", btn)),
+        ]
+        
+        for method_name, click_fn in click_methods:
+            try:
+                self.log(f"[follow] 尝试 {method_name}")
+                click_fn()
+                time.sleep(1.5)  # 等待页面响应
+                
+                # 验证是否真的关注了
+                if _verify_followed():
+                    self.log(f"[follow] {method_name} 成功，已关注")
+                    return True
+                else:
+                    self.log(f"[follow] {method_name} 后验证失败，按钮状态未变化")
+            except Exception as e:
+                self.log(f"[follow] {method_name} 失败：{e}")
+                continue
+        
+        self.log("[follow] 所有点击方式都失败或未生效")
+        return False
+    
     def get_video_state(self) -> dict:
         """
         返回播放状态（用于“等待播放完成”）。字段：
@@ -1085,6 +1425,9 @@ class DouyinBot:
     def get_page_info(self) -> dict:
         """
         获取页面信息（SPA 场景下 document.title 可能不更新，补充 og:title 等）。
+        
+        Returns:
+            包含 doc_title, og_title, description, h1, h2 的字典
         """
         try:
             return dict(
@@ -1102,7 +1445,114 @@ class DouyinBot:
             )
         except Exception:
             return {}
+    
+    # -------------------------
+    # 智能互动相关方法
+    # -------------------------
+    def _normalize_text(self, text: str) -> str:
+        """
+        规范化文本，用于比较
+        去除所有空白字符（包括换行、空格、制表符等），只保留可见字符
+        """
+        if not text:
+            return ""
+        # 去除所有空白字符
+        return re.sub(r'\s+', '', text)
+    
+    def is_same_video(self, text1: str, text2: str) -> bool:
+        """
+        判断两个文本是否来自同一个视频
+        输入的文本应该已经是规范化后的文本
+        只比较前20个字符，使用宽松标准
+        
+        时间复杂度：O(1)，只比较固定长度的前缀
+        """
+        if not text1 or not text2:
+            return False
+        
+        # 只取前20个字符进行比较
+        prefix_len = 20
+        prefix1 = text1[:prefix_len]
+        prefix2 = text2[:prefix_len]
+        
+        # 如果前缀完全相同，认为是同一个视频
+        if prefix1 == prefix2:
+            return True
+        
+        # 如果其中一个前缀太短（少于5个字符），无法判断
+        if len(prefix1) < 5 or len(prefix2) < 5:
+            return False
+        
+        # 计算前20个字符的相似度（宽松标准）
+        # 允许最多30%的字符差异
+        min_prefix_len = min(len(prefix1), len(prefix2))
+        diff_count = sum(1 for i in range(min_prefix_len) if prefix1[i] != prefix2[i])
+        
+        # 如果差异数不超过30%，认为是同一个视频
+        similarity = 1.0 - (diff_count / min_prefix_len)
+        return similarity >= 0.7  # 70%相似度即可
+    
+    def get_video_topic(self) -> Optional[str]:
+        """
+        从页面信息中提取视频描述/话题文本
+        优先使用 og:title，其次使用 description，然后使用 doc_title，最后使用 h1/h2
+        """
+        try:
+            pi = self.get_page_info()
+            # 优先使用 og_title，如果没有则使用 description，然后使用 doc_title，最后使用 h1/h2
+            topic_text = pi.get("og_title") or pi.get("description") or pi.get("doc_title") or pi.get("h1") or pi.get("h2") or ""
+            
+            if not topic_text:
+                self.log("[get_video_topic] 无法获取视频描述")
+                return None
+            
+            # 规范化处理（去除所有空白字符）
+            normalized_text = self._normalize_text(topic_text)
+            self.log(f"[get_video_topic] 识别到视频描述: {normalized_text[:50]}...")
+            return normalized_text
+        except Exception as e:
+            self.log(f"[get_video_topic] 获取视频描述失败: {e}")
+            return None
+    
+    def generate_comment_from_task(
+        self,
+        video_description: str,
+        comments: List[str] = [],
+        persona: str = "yi_ba"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        根据 task_prompt.json 配置生成评论
+        
+        Args:
+            video_description: 视频描述文本
+            comments: 他人评论列表（最多取前3条）
+            persona: 角色名称，默认为 "yi_ba"，可选 "yi_ma"
+            
+        Returns:
+            包含 comment、real_human_score、follow_back_score、persona_consistency_score 的字典
+            如果生成失败或不符合条件，返回 None
+        """
+        if not self.llm_generator:
+            logger = logging.getLogger("douyin-like")
+            logger.warning("[generate_comment_from_task] LLM 客户端不可用")
+            return None
+        
+        if not self.llm_generator.is_available():
+            logger = logging.getLogger("douyin-like")
+            logger.warning("[generate_comment_from_task] LLM 客户端未初始化成功")
+            return None
+        
+        result = self.llm_generator.generate_comment_from_task(
+            video_description=video_description,
+            comments=comments,
+            persona=persona
+        )
+        
+        return result
 
+    # -------------------------
+    # 视频切换相关
+    # -------------------------
     def swipe_next(self) -> bool:
         """
         模拟“滑走/切到下一条视频”。

@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+logs/*.log
+logs/*.png
+!logs/.gitkeep
+
+# Config (may contain sensitive data)
+config/comment_history_*.json
+.env
+.env.local
+
+# Test files
+test_*.py
+test_*.png
+
+# Generated files
+users_info.json
+users_openid.txt

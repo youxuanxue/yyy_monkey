@@ -38,6 +38,7 @@ class OllamaServiceManager:
         self.port = port
         self.process: Optional[subprocess.Popen] = None
         self.is_embedded = False  # 是否使用的是内置的 Ollama
+        self.cmd = "ollama"       # 默认命令
         
         if not OllamaServiceManager._cleanup_registered:
             atexit.register(self.cleanup)
@@ -74,14 +75,14 @@ class OllamaServiceManager:
             return True
         
         embedded_path = self._get_embedded_ollama_path()
-        cmd = "ollama"  # 默认使用系统命令
+        self.cmd = "ollama"  # 默认使用系统命令
         env = os.environ.copy()
         
         # 配置内置 Ollama 环境
         if embedded_path:
             logger.info(f"发现内置 Ollama: {embedded_path}")
             self.is_embedded = True
-            cmd = embedded_path
+            self.cmd = embedded_path
             
             # 设置模型路径
             models_path = os.path.join(PROJECT_DIR, OLLAMA_CONFIG["models_path"])
@@ -119,7 +120,7 @@ class OllamaServiceManager:
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             
             self.process = subprocess.Popen(
-                [cmd, "serve"],
+                [self.cmd, "serve"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 start_new_session=True,
@@ -150,6 +151,38 @@ class OllamaServiceManager:
             self.process = None
             return False
     
+    def pull_model(self, model_name: str) -> bool:
+        """拉取模型"""
+        logger.info(f"正在尝试拉取模型 {model_name} (这可能需要几分钟)...")
+        try:
+            # Windows 下隐藏窗口
+            startupinfo = None
+            if platform.system() == "Windows":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                
+            # 设置环境变量（主要针对内置 Ollama 需要 OLLAMA_MODELS）
+            env = os.environ.copy()
+            if self.is_embedded:
+                models_path = os.path.join(PROJECT_DIR, OLLAMA_CONFIG["models_path"])
+                env["OLLAMA_MODELS"] = models_path
+                env["OLLAMA_HOST"] = f"{self.host}:{self.port}"
+
+            subprocess.run(
+                [self.cmd, "pull", model_name],
+                check=True,
+                env=env,
+                startupinfo=startupinfo
+            )
+            logger.info(f"模型 {model_name} 拉取成功")
+            return True
+        except subprocess.CalledProcessError:
+            logger.error(f"模型 {model_name} 拉取失败")
+            return False
+        except Exception as e:
+            logger.error(f"拉取模型出错: {e}")
+            return False
+
     def cleanup(self) -> None:
         """清理 Ollama 服务进程"""
         if self.process is not None:
@@ -297,6 +330,7 @@ class LLMCommentGenerator:
             # 格式化 user_prompt
             # 优化：限制文章内容长度，提高生成速度
             # 对于评论生成任务，通常前 800 个字符已足够理解大意
+            # 进一步缩短以应对低配置机器
             user_prompt = user_prompt_template.format(
                 article_content=article_content[:800]
             )
@@ -308,15 +342,21 @@ class LLMCommentGenerator:
             start_time = time.time()
             logger.info(f"正在调用 LLM 生成评论 (模型: {model_name}, 输入长度: {len(article_content[:800])})...")
             
-            response = self.client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.7,
-                max_tokens=150,
-            )
+            # 设置较短的超时时间，避免长时间卡死
+            try:
+                response = self.client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=60,  # 评论通常很短，减少生成token数
+                    timeout=30.0,   # 30秒超时
+                )
+            except Exception as e:
+                logger.warning(f"LLM 请求超时或出错 ({e})，将使用默认评论")
+                return None
             
             elapsed = time.time() - start_time
             logger.info(f"LLM 生成耗时: {elapsed:.2f}s")
@@ -338,6 +378,14 @@ class LLMCommentGenerator:
             return comment
             
         except Exception as e:
+            error_msg = str(e)
+            if "not found" in error_msg.lower() or "404" in error_msg:
+                logger.warning(f"模型 {model_name} 未找到，尝试自动拉取...")
+                if self.ollama_manager and self.ollama_manager.pull_model(model_name):
+                    # 拉取成功后重试一次
+                    logger.info("模型拉取成功，正在重试生成评论...")
+                    return self.generate_comment(article_content, suffix)
+            
             logger.error(f"生成评论失败: {e}")
             return None
     

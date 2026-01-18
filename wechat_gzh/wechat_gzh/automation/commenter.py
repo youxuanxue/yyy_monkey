@@ -31,7 +31,10 @@ class Commenter:
         "comment_button.png",    # 写留言按钮（气泡图标）
         "comment_button_2.png",  # 写留言按钮（加号图标）
     ]
-    COMMENT_INPUT_IMAGE = "comment_input.png"    # 留言输入框
+    COMMENT_INPUT_IMAGES = [
+        "comment_input.png",     # 留言输入框（样式1）
+        "comment_input_2.png",   # 留言输入框（样式2）
+    ]
     SEND_BUTTON_IMAGE = "send_button.png"        # 发送按钮
     
     def __init__(self, navigator: Navigator, confidence: float = 0.8):
@@ -43,7 +46,6 @@ class Commenter:
             confidence: 图像识别置信度 (0-1)
         """
         self.navigator = navigator
-        self.window = navigator.window
         self.confidence = confidence
         
         # 获取平台对应的资源目录
@@ -62,6 +64,8 @@ class Commenter:
         # 是否使用图像识别
         self._use_image_recognition = True
         self._check_assets()
+        
+        self._positions_calibrated = False
     
     def _check_assets(self) -> None:
         """检查图片资源是否存在"""
@@ -71,14 +75,16 @@ class Commenter:
         )
         
         # 检查其他必需图片
-        input_exists = (self.asset_dir / self.COMMENT_INPUT_IMAGE).exists()
+        input_exists = any(
+            (self.asset_dir / img).exists() for img in self.COMMENT_INPUT_IMAGES
+        )
         send_exists = (self.asset_dir / self.SEND_BUTTON_IMAGE).exists()
         
         missing = []
         if not comment_btn_exists:
             missing.append("comment_button*.png")
         if not input_exists:
-            missing.append(self.COMMENT_INPUT_IMAGE)
+            missing.append("comment_input*.png")
         if not send_exists:
             missing.append(self.SEND_BUTTON_IMAGE)
         
@@ -230,9 +236,12 @@ class Commenter:
             是否成功
         """
         if self._use_image_recognition:
-            if self._find_and_click(self.COMMENT_INPUT_IMAGE, "留言输入框"):
-                return True
-            print(f"    → 图像识别失败，尝试使用备用坐标")
+            # 尝试所有留言输入框图片
+            for img in self.COMMENT_INPUT_IMAGES:
+                if (self.asset_dir / img).exists():
+                    if self._find_and_click(img, f"留言输入框({img})"):
+                        return True
+            print(f"    → 所有图片都未找到，尝试使用备用坐标")
         
         # 备用：使用固定坐标
         click_x = int(self.comment_input_x / SCREEN_SCALE)
@@ -257,7 +266,8 @@ class Commenter:
         
         # 使用剪贴板输入中文
         pyperclip.copy(text)
-        pyautogui.hotkey("command", "v")
+        modifier = "command" if self.platform == "mac" else "ctrl"
+        pyautogui.hotkey(modifier, "v")
         time.sleep(0.3)
     
     def click_send(self) -> bool:
@@ -297,6 +307,7 @@ class Commenter:
             wait_before_send_min: 发送前最小等待时间
             wait_before_send_max: 发送前最大等待时间
             skip_scroll: 是否跳过滚动
+            
             
         Returns:
             是否成功
@@ -341,136 +352,3 @@ class Commenter:
         """返回公众号列表"""
         self.navigator.go_back()
         time.sleep(0.5)
-
-
-class InteractiveCommenter(Commenter):
-    """交互式留言器 - 支持截取图片资源"""
-    
-    COUNTDOWN_SECONDS = 5
-    
-    def __init__(self, navigator: Navigator, confidence: float = 0.8):
-        super().__init__(navigator, confidence)
-        self._positions_calibrated = False
-    
-    def _countdown_capture(self, prompt: str) -> Tuple[int, int]:
-        """倒计时后捕获鼠标位置"""
-        print(f"\n{prompt}")
-        print(f"请在 {self.COUNTDOWN_SECONDS} 秒内将鼠标移动到目标位置...")
-        print()
-        
-        for i in range(self.COUNTDOWN_SECONDS, 0, -1):
-            print(f"  {i}...", end=" ", flush=True)
-            time.sleep(1)
-        
-        x, y = pyautogui.position()
-        print(f"\n  ✓ 已捕获位置: ({x}, {y})")
-        return x, y
-    
-    def capture_button_image(self, image_name: str, desc: str) -> bool:
-        """
-        截取按钮图片
-        
-        Args:
-            image_name: 保存的文件名
-            desc: 按钮描述
-            
-        Returns:
-            是否成功
-        """
-        print(f"\n请将鼠标移动到【{desc}】的左上角...")
-        input("准备好后按 Enter...")
-        x1, y1 = self._countdown_capture(f"【{desc}】左上角")
-        
-        print(f"\n请将鼠标移动到【{desc}】的右下角...")
-        input("准备好后按 Enter...")
-        x2, y2 = self._countdown_capture(f"【{desc}】右下角")
-        
-        # 计算区域
-        left = min(x1, x2)
-        top = min(y1, y2)
-        width = abs(x2 - x1)
-        height = abs(y2 - y1)
-        
-        if width < 10 or height < 10:
-            print(f"  ⚠ 区域太小，请重新截取")
-            return False
-        
-        # 截图保存
-        try:
-            # 确保目录存在
-            self.asset_dir.mkdir(parents=True, exist_ok=True)
-            
-            screenshot = pyautogui.screenshot(region=(left, top, width, height))
-            save_path = self.asset_dir / image_name
-            screenshot.save(str(save_path))
-            print(f"  ✓ 已保存: {save_path}")
-            return True
-        except Exception as e:
-            print(f"  ✗ 保存失败: {e}")
-            return False
-    
-    def calibrate_images(self) -> None:
-        """交互式截取所有按钮图片"""
-        print("\n" + "=" * 60)
-        print("按钮图片截取模式")
-        print("=" * 60)
-        print("将截取以下按钮图片：")
-        print("  1. 写留言按钮")
-        print("  2. 留言输入框")
-        print("  3. 发送按钮")
-        print("=" * 60)
-        
-        input("\n请先手动打开一篇文章并滚动到底部，准备好后按 Enter...")
-        
-        # 截取写留言按钮
-        self.capture_button_image(self.COMMENT_BUTTON_IMAGE, "写留言按钮")
-        
-        input("\n请点击写留言按钮打开输入框，准备好后按 Enter...")
-        
-        # 截取留言输入框
-        self.capture_button_image(self.COMMENT_INPUT_IMAGE, "留言输入框")
-        
-        # 截取发送按钮
-        self.capture_button_image(self.SEND_BUTTON_IMAGE, "发送按钮")
-        
-        print("\n" + "=" * 60)
-        print("✓ 按钮图片截取完成！")
-        print("=" * 60)
-        
-        # 重新检查资源
-        self._check_assets()
-    
-    def calibrate_positions(self) -> None:
-        """交互式校准备用坐标"""
-        print("\n" + "=" * 60)
-        print("备用坐标校准模式")
-        print("=" * 60)
-        
-        input("\n请先手动打开一篇文章并滚动到底部，准备好后按 Enter...")
-        
-        x1, y1 = self._countdown_capture("【写留言按钮】")
-        self.comment_button_x = x1
-        self.comment_button_y = y1
-        
-        input("\n请点击写留言按钮打开输入框，准备好后按 Enter...")
-        
-        x2, y2 = self._countdown_capture("【留言输入框】")
-        self.comment_input_x = x2
-        self.comment_input_y = y2
-        
-        input("\n按 Enter 开始校准发送按钮位置...")
-        
-        x3, y3 = self._countdown_capture("【发送按钮】")
-        self.send_button_x = x3
-        self.send_button_y = y3
-        
-        print("\n" + "=" * 60)
-        print("✓ 备用坐标校准完成！")
-        print("=" * 60)
-        
-        self._positions_calibrated = True
-    
-    def ensure_calibrated(self) -> None:
-        """确保已经校准"""
-        if not self._positions_calibrated and not self._use_image_recognition:
-            self.calibrate_positions()

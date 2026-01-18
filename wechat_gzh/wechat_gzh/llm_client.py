@@ -8,11 +8,15 @@ import json
 import logging
 import time
 import os
+import sys
 import subprocess
 import atexit
 import socket
+import platform
 from pathlib import Path
 from typing import Optional, Dict, List, Any
+
+from .config import OLLAMA_CONFIG, PROJECT_DIR
 
 try:
     from openai import OpenAI
@@ -29,19 +33,34 @@ class OllamaServiceManager:
     
     _cleanup_registered = False
     
-    def __init__(self, host: str = "localhost", port: int = 11434):
+    def __init__(self, host: str = OLLAMA_CONFIG["host"], port: int = OLLAMA_CONFIG["port"]):
         self.host = host
         self.port = port
         self.process: Optional[subprocess.Popen] = None
+        self.is_embedded = False  # 是否使用的是内置的 Ollama
+        
         if not OllamaServiceManager._cleanup_registered:
             atexit.register(self.cleanup)
             OllamaServiceManager._cleanup_registered = True
     
+    def _get_embedded_ollama_path(self) -> Optional[str]:
+        """获取内置 Ollama 可执行文件路径"""
+        system = platform.system()
+        if system == "Windows":
+            bin_path = os.path.join(PROJECT_DIR, OLLAMA_CONFIG["bin_path_win"])
+        else:
+            bin_path = os.path.join(PROJECT_DIR, OLLAMA_CONFIG["bin_path"])
+            
+        if os.path.exists(bin_path):
+            return bin_path
+        return None
+
     def is_running(self) -> bool:
         """检查 Ollama 服务是否正在运行"""
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(1)
+            # 使用配置的 host 和 port
             result = sock.connect_ex((self.host, self.port))
             sock.close()
             return result == 0
@@ -51,33 +70,64 @@ class OllamaServiceManager:
     def ensure_running(self) -> bool:
         """确保 Ollama 服务正在运行"""
         if self.is_running():
-            logger.info("Ollama 服务已运行")
+            logger.info(f"Ollama 服务已在运行 ({self.host}:{self.port})")
             return True
         
-        try:
-            result = subprocess.run(
-                ["ollama", "--version"],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            if result.returncode != 0:
-                logger.warning("Ollama 未安装，请访问 https://ollama.ai 安装")
-                return False
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            logger.warning("Ollama 未安装，请访问 https://ollama.ai 安装")
-            return False
+        embedded_path = self._get_embedded_ollama_path()
+        cmd = "ollama"  # 默认使用系统命令
+        env = os.environ.copy()
         
+        # 配置内置 Ollama 环境
+        if embedded_path:
+            logger.info(f"发现内置 Ollama: {embedded_path}")
+            self.is_embedded = True
+            cmd = embedded_path
+            
+            # 设置模型路径
+            models_path = os.path.join(PROJECT_DIR, OLLAMA_CONFIG["models_path"])
+            # 确保目录存在
+            os.makedirs(models_path, exist_ok=True)
+            
+            env["OLLAMA_MODELS"] = models_path
+            env["OLLAMA_HOST"] = f"{self.host}:{self.port}"
+            # 禁用自动更新检查
+            env["OLLAMA_NOPRUNE"] = "1" 
+            
+            logger.info(f"设置模型路径: {models_path}")
+        else:
+            # 检查系统是否安装了 ollama
+            try:
+                result = subprocess.run(
+                    ["ollama", "--version"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode != 0:
+                    logger.warning("未找到内置 Ollama，且系统未安装 Ollama")
+                    return False
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                logger.warning("未找到内置 Ollama，且系统未安装 Ollama")
+                return False
+
         logger.info("正在启动 Ollama 服务...")
         try:
+            # Windows 下隐藏窗口
+            startupinfo = None
+            if platform.system() == "Windows":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            
             self.process = subprocess.Popen(
-                ["ollama", "serve"],
+                [cmd, "serve"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                start_new_session=True
+                start_new_session=True,
+                env=env,
+                startupinfo=startupinfo
             )
             
-            max_wait = 10
+            max_wait = 15
             wait_interval = 0.5
             waited = 0
             while waited < max_wait:
@@ -88,7 +138,8 @@ class OllamaServiceManager:
                 waited += wait_interval
             
             if self.process.poll() is not None:
-                logger.error("Ollama 服务启动失败")
+                _, stderr = self.process.communicate()
+                logger.error(f"Ollama 服务启动失败: {stderr.decode('utf-8', errors='ignore')}")
                 self.process = None
                 return False
             else:
@@ -140,8 +191,12 @@ class LLMCommentGenerator:
             base_url = os.environ.get("OPENAI_BASE_URL")
             
             if not base_url:
-                base_url = "http://localhost:11434/v1"
-                self.ollama_manager = OllamaServiceManager()
+                # 默认连接本地 Ollama
+                host = OLLAMA_CONFIG["host"]
+                port = OLLAMA_CONFIG["port"]
+                base_url = f"http://{host}:{port}/v1"
+                
+                self.ollama_manager = OllamaServiceManager(host, port)
                 if not self.ollama_manager.ensure_running():
                     logger.warning("Ollama 服务不可用，LLM 评论生成将被禁用")
                     return
@@ -160,17 +215,25 @@ class LLMCommentGenerator:
     
     def _get_default_model(self) -> str:
         """获取默认模型名称"""
-        base_url = os.environ.get("OPENAI_BASE_URL", "http://localhost:11434/v1")
+        base_url = os.environ.get("OPENAI_BASE_URL", "")
         
-        if "localhost:11434" in base_url or "127.0.0.1:11434" in base_url:
-            return os.environ.get("OLLAMA_MODEL", "qwen2.5:3b")
+        # 如果是本地服务
+        if not base_url or "localhost" in base_url or "127.0.0.1" in base_url:
+            # 优先使用环境变量
+            model = os.environ.get("OLLAMA_MODEL")
+            if model:
+                return model
+            
+            # 默认模型：优先使用 qwen2.5:3b，因为效果较好且体积适中
+            # 打包时应确保该模型已 pull
+            return "qwen2.5:3b"
         else:
             return "gpt-3.5-turbo"
     
     def _load_task_config(self) -> None:
         """加载 task_prompt.json 配置文件"""
         if self.config_path is None:
-            self.config_path = Path.cwd() / "config" / "task_prompt.json"
+            self.config_path = Path(PROJECT_DIR) / "config" / "task_prompt.json"
         
         if not self.config_path.exists():
             logger.warning(f"配置文件不存在: {self.config_path}")
@@ -253,17 +316,12 @@ class LLMCommentGenerator:
             # 清理评论（移除引号等）
             comment = comment.strip('"\'')
             
-            # 不再强制添加固定的 suffix
-            # 让 AI 自己在评论中自然融入回关意图（已在 prompt 中要求）
-            # 如果生成的评论完全没有回关意图，可以适当补充，但不应每次都添加
             # 检查评论中是否已经包含回关相关的关键词
             follow_back_keywords = ["关", "互关", "回关", "关注", "交流", "互粉"]
             has_follow_back_intent = any(keyword in comment for keyword in follow_back_keywords)
             
             # 如果评论完全没有回关意图，且 suffix 非空，才考虑添加
-            # 但优先相信 AI 的生成结果，只在明显缺失时补充
             if not has_follow_back_intent and suffix and len(comment) < 15:
-                # 只对过短的评论补充，避免破坏 AI 的自然表达
                 logger.info("评论中缺少回关意图，但已包含在 prompt 中，相信 AI 生成结果")
             
             logger.info(f"LLM 生成评论: {comment}")

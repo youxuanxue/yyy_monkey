@@ -11,7 +11,7 @@
     "_account_item_height": "每个公众号项的高度（用于计算第N个公众号的位置）",
     "article_area_x": 1800,
     "_article_area_x": "文章/消息区域的 X 坐标偏移",
-    "article_area_y": 750,
+    "article_area_y": 700,
     "_article_area_y": "文章/消息区域的 Y 坐标偏移"
   },
   "ocr": {

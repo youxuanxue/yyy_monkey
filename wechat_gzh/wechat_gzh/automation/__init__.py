@@ -2,9 +2,8 @@
 微信公众号自动化操作模块
 """
 
-from .window import WeChatWindow
-from .navigator import Navigator, InteractiveNavigator
-from .commenter import Commenter, InteractiveCommenter
+from .navigator import Navigator
+from .commenter import Commenter
 from .ocr import OCRReader
 from .calibration import (
     CalibrationManager,
@@ -24,11 +23,8 @@ from .utils import (
 )
 
 __all__ = [
-    "WeChatWindow",
     "Navigator",
-    "InteractiveNavigator",
     "Commenter",
-    "InteractiveCommenter",
     "OCRReader",
     "CalibrationManager",
     "CalibrationData",

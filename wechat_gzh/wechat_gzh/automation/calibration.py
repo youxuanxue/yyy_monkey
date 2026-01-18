@@ -4,6 +4,7 @@
 
 import json
 import os
+import platform
 from dataclasses import dataclass, asdict, field
 from typing import Optional
 
@@ -32,22 +33,10 @@ class OCRCalibration:
 
 
 @dataclass
-class CommenterCalibration:
-    """留言器校准数据"""
-    comment_button_x: int = 900
-    comment_button_y: int = 700
-    comment_input_x: int = 900
-    comment_input_y: int = 600
-    send_button_x: int = 1100
-    send_button_y: int = 600
-
-
-@dataclass
 class CalibrationData:
     """完整的校准数据"""
     navigator: NavigatorCalibration = field(default_factory=NavigatorCalibration)
     ocr: OCRCalibration = field(default_factory=OCRCalibration)
-    commenter: CommenterCalibration = field(default_factory=CommenterCalibration)
     calibrated: bool = False  # 是否已校准
 
 
@@ -55,6 +44,7 @@ class CalibrationManager:
     """校准配置管理器"""
     
     DEFAULT_FILE = "calibration.json"
+    WIN_FILE = "calibration-win.json"
     
     def __init__(self, config_dir: str):
         """
@@ -64,7 +54,10 @@ class CalibrationManager:
             config_dir: 配置文件目录
         """
         self.config_dir = config_dir
-        self.config_file = os.path.join(config_dir, self.DEFAULT_FILE)
+        
+        filename = self.WIN_FILE if platform.system() == "Windows" else self.DEFAULT_FILE
+        self.config_file = os.path.join(config_dir, filename)
+        
         self._data: Optional[CalibrationData] = None
     
     @property
@@ -95,17 +88,14 @@ class CalibrationManager:
             # 解析嵌套结构（忽略注释字段）
             nav_data = filter_comments(raw_data.get("navigator", {}))
             ocr_data = filter_comments(raw_data.get("ocr", {}))
-            comm_data = filter_comments(raw_data.get("commenter", {}))
             
             navigator = NavigatorCalibration(**nav_data)
             ocr = OCRCalibration(**ocr_data)
-            commenter = CommenterCalibration(**comm_data)
             calibrated = raw_data.get("calibrated", False)
             
             return CalibrationData(
                 navigator=navigator,
                 ocr=ocr,
-                commenter=commenter,
                 calibrated=calibrated
             )
         except (json.JSONDecodeError, TypeError, KeyError) as e:
@@ -129,9 +119,12 @@ class CalibrationManager:
         os.makedirs(self.config_dir, exist_ok=True)
         
         # 转换为字典（带注释）
+        is_win = platform.system() == "Windows"
+        filename = self.WIN_FILE if is_win else self.DEFAULT_FILE
+        
         save_data = {
-            "_说明": "校准配置文件 - 所有坐标都是屏幕绝对坐标（相对于屏幕左上角）",
-            "_用法": "可手动编辑此文件，然后用 -v 参数验证: uv run python -m wechat_gzh.auto_comment -v",
+            "_说明": f"校准配置文件 ({'Windows' if is_win else 'Mac/Linux'}) - 所有坐标都是相对于微信窗口左上角的偏移量",
+            "_用法": f"可手动编辑此文件，然后用 -v 参数验证: uv run python -m wechat_gzh.auto_comment -v",
             
             "navigator": {
                 "_说明": "导航器配置 - 控制点击公众号和文章的位置（屏幕绝对坐标）",
@@ -159,19 +152,6 @@ class CalibrationManager:
                 "article_title_width": self._data.ocr.article_title_width,
                 "article_title_height": self._data.ocr.article_title_height,
                 "_article_title": "文章标题区域：(x, y) 是屏幕左上角坐标，width/height 是宽高",
-            },
-            
-            "commenter": {
-                "_说明": "留言器配置 - 控制留言相关按钮和输入框的位置（屏幕绝对坐标）",
-                "comment_button_x": self._data.commenter.comment_button_x,
-                "comment_button_y": self._data.commenter.comment_button_y,
-                "_comment_button": "留言按钮的屏幕坐标（文章底部的'写留言'按钮）",
-                "comment_input_x": self._data.commenter.comment_input_x,
-                "comment_input_y": self._data.commenter.comment_input_y,
-                "_comment_input": "留言输入框的屏幕坐标",
-                "send_button_x": self._data.commenter.send_button_x,
-                "send_button_y": self._data.commenter.send_button_y,
-                "_send_button": "发送按钮的屏幕坐标",
             },
             
             "calibrated": self._data.calibrated,

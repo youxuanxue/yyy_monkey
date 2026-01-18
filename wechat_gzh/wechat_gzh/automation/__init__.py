@@ -10,7 +10,6 @@ from .calibration import (
     CalibrationData,
     NavigatorCalibration,
     OCRCalibration,
-    CommenterCalibration,
 )
 from .visualizer import CalibrationVisualizer, verify_calibration
 from .utils import (
@@ -30,7 +29,6 @@ __all__ = [
     "CalibrationData",
     "NavigatorCalibration",
     "OCRCalibration",
-    "CommenterCalibration",
     "CalibrationVisualizer",
     "verify_calibration",
     "HistoryManager",

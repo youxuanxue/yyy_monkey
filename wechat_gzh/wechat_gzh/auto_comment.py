@@ -115,7 +115,6 @@ class AutoCommentBot:
             
             # 标记为已校准
             self.navigator._positions_calibrated = True
-            self.commenter._positions_calibrated = True
             
             # 保存默认配置
             self._save_calibration()
@@ -136,13 +135,9 @@ class AutoCommentBot:
         
         self.ocr.load_calibration(data.ocr)
         
-        self.commenter.load_calibration(data.commenter)
-        self.commenter._positions_calibrated = True
-        
         print("✓ 已加载校准配置")
         print(f"  导航器: 公众号列表位置 ({data.navigator.account_list_x}, {data.navigator.account_list_y_start})")
         print(f"  OCR: 名称区域 ({data.ocr.account_name_x}, {data.ocr.account_name_y})")
-        print(f"  留言器: 留言按钮 ({data.commenter.comment_button_x}, {data.commenter.comment_button_y})")
         
         # 生成验证截图
         if show_visual:
@@ -155,7 +150,6 @@ class AutoCommentBot:
         data = CalibrationData(
             navigator=self.navigator.get_calibration(),
             ocr=self.ocr.get_calibration(),
-            commenter=self.commenter.get_calibration(),
             calibrated=True,
         )
         self.calibration_mgr.save(data)
@@ -184,7 +178,6 @@ class AutoCommentBot:
         data = CalibrationData(
             navigator=self.navigator.get_calibration(),
             ocr=self.ocr.get_calibration(),
-            commenter=self.commenter.get_calibration(),
             calibrated=True,
         )
         
@@ -198,9 +191,6 @@ class AutoCommentBot:
         print("  - 绿色点: 文章点击位置")
         print("  - 蓝色框: 公众号名称 OCR 识别区域")
         print("  - 橙色框: 文章标题 OCR 识别区域")
-        print("  - 紫色点: 留言按钮位置")
-        print("  - 青色点: 留言输入框位置")
-        print("  - 黄色点: 发送按钮位置")
         print()
         
         return output_path
@@ -432,13 +422,6 @@ class AutoCommentBot:
                 time.sleep(0.5)
                 return result
             
-            # 如果留言位置未校准，进行校准
-            if not self.commenter._positions_calibrated:
-                self.logger.info("首次处理，标记留言位置已校准（使用默认/配置坐标）")
-                self.commenter._positions_calibrated = True
-                # 保存更新后的校准配置
-                self._save_calibration()
-            
             # 尝试留言
             self.logger.info("正在留言...")
             
@@ -465,32 +448,9 @@ class AutoCommentBot:
                 self.logger.info(f"LLM 生成评论: {comment_text}")
             
             # 滚动结束后再截图（标注留言按钮、输入框、发送按钮位置）
-            comment_btn_region = (
-                self.commenter.comment_button_x - 50,
-                self.commenter.comment_button_y - 25,
-                100, 50,
-                'magenta',  # 紫红色
-                f'留言按钮({self.commenter.comment_button_x},{self.commenter.comment_button_y})'
-            )
-            comment_input_region = (
-                self.commenter.comment_input_x - 200,
-                self.commenter.comment_input_y - 25,
-                400, 50,
-                'lime',  # 绿色
-                f'输入框({self.commenter.comment_input_x},{self.commenter.comment_input_y})'
-            )
-            send_btn_region = (
-                self.commenter.send_button_x - 40,
-                self.commenter.send_button_y - 20,
-                80, 40,
-                'yellow',  # 黄色
-                f'发送按钮({self.commenter.send_button_x},{self.commenter.send_button_y})'
-            )
-            
-            # 截图：滚动到底部后，留言前（标注留言按钮、输入框、发送按钮位置）
+            # 截图：滚动到底部后，留言前
             self._save_debug_screenshot(
                 "5_after_scroll_before_comment", index,
-                mark_regions=[comment_btn_region, comment_input_region, send_btn_region],
                 enable_debug_screenshot=self.enable_debug_screenshot
             )
             
@@ -551,6 +511,11 @@ class AutoCommentBot:
         # 检查前置条件
         if not self.check_prerequisites():
             return
+        
+        # 预热 LLM (在后台加载模型)
+        if self.llm.is_available():
+            print("正在预热 AI 模型，请稍候...")
+            self.llm.warmup()
         
         # 校准位置
         self.calibrate()

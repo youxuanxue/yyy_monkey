@@ -15,7 +15,7 @@ from .navigator import Navigator, SCREEN_SCALE
 from .utils import random_sleep, interrupt_handler
 
 if TYPE_CHECKING:
-    from .calibration import CommenterCalibration
+    pass
 
 # 获取 assets 目录路径
 MODULE_DIR = Path(__file__).parent
@@ -53,19 +53,9 @@ class Commenter:
         self.platform = "mac" if platform.system() == "Darwin" else "win"
         self.asset_dir = ASSETS_DIR / self.platform
         
-        # 备用：固定坐标（当图像识别失败时使用）
-        self.comment_button_x = 900
-        self.comment_button_y = 700
-        self.comment_input_x = 900
-        self.comment_input_y = 600
-        self.send_button_x = 1100
-        self.send_button_y = 600
-        
         # 是否使用图像识别
         self._use_image_recognition = True
         self._check_assets()
-        
-        self._positions_calibrated = False
     
     def _check_assets(self) -> None:
         """检查图片资源是否存在"""
@@ -91,7 +81,7 @@ class Commenter:
         if missing:
             print(f"    ⚠ 缺少图片资源: {missing}")
             print(f"    请将图片放到: {self.asset_dir}")
-            print(f"    将使用备用固定坐标")
+            print(f"    注意：缺少图片可能导致无法留言")
             self._use_image_recognition = False
         else:
             # 显示找到的写留言按钮图片
@@ -166,27 +156,6 @@ class Commenter:
         print(f"    ✗ 未找到 {desc}")
         return False
     
-    def load_calibration(self, calibration: "CommenterCalibration") -> None:
-        """加载校准数据（备用坐标）"""
-        self.comment_button_x = calibration.comment_button_x
-        self.comment_button_y = calibration.comment_button_y
-        self.comment_input_x = calibration.comment_input_x
-        self.comment_input_y = calibration.comment_input_y
-        self.send_button_x = calibration.send_button_x
-        self.send_button_y = calibration.send_button_y
-    
-    def get_calibration(self) -> "CommenterCalibration":
-        """获取当前校准数据"""
-        from .calibration import CommenterCalibration
-        return CommenterCalibration(
-            comment_button_x=self.comment_button_x,
-            comment_button_y=self.comment_button_y,
-            comment_input_x=self.comment_input_x,
-            comment_input_y=self.comment_input_y,
-            send_button_x=self.send_button_x,
-            send_button_y=self.send_button_y,
-        )
-    
     def open_article(self, wait_time: float = 3.0) -> None:
         """打开文章"""
         self.navigator.click_first_article()
@@ -216,17 +185,9 @@ class Commenter:
                 if (self.asset_dir / img).exists():
                     if self._find_and_click(img, f"写留言按钮({img})"):
                         return True
-            print(f"    → 所有图片都未找到，尝试使用备用坐标")
+            print(f"    → 所有图片都未找到")
         
-        # 备用：使用固定坐标
-        click_x = int(self.comment_button_x / SCREEN_SCALE)
-        click_y = int(self.comment_button_y / SCREEN_SCALE)
-        print(f"    → 备用坐标: ({self.comment_button_x}, {self.comment_button_y})")
-        print(f"    → 实际点击: ({click_x}, {click_y})")
-        pyautogui.moveTo(click_x, click_y, duration=0.3)
-        time.sleep(0.2)
-        pyautogui.click(click_x, click_y)
-        return True
+        return False
     
     def click_input_box(self) -> bool:
         """
@@ -241,17 +202,9 @@ class Commenter:
                 if (self.asset_dir / img).exists():
                     if self._find_and_click(img, f"留言输入框({img})"):
                         return True
-            print(f"    → 所有图片都未找到，尝试使用备用坐标")
+            print(f"    → 所有图片都未找到")
         
-        # 备用：使用固定坐标
-        click_x = int(self.comment_input_x / SCREEN_SCALE)
-        click_y = int(self.comment_input_y / SCREEN_SCALE)
-        print(f"    → 备用坐标: ({self.comment_input_x}, {self.comment_input_y})")
-        print(f"    → 实际点击: ({click_x}, {click_y})")
-        pyautogui.moveTo(click_x, click_y, duration=0.3)
-        time.sleep(0.2)
-        pyautogui.click(click_x, click_y)
-        return True
+        return False
     
     def input_comment(self, text: str) -> None:
         """
@@ -280,17 +233,9 @@ class Commenter:
         if self._use_image_recognition:
             if self._find_and_click(self.SEND_BUTTON_IMAGE, "发送按钮"):
                 return True
-            print(f"    → 图像识别失败，尝试使用备用坐标")
+            print(f"    → 图像识别失败")
         
-        # 备用：使用固定坐标
-        click_x = int(self.send_button_x / SCREEN_SCALE)
-        click_y = int(self.send_button_y / SCREEN_SCALE)
-        print(f"    → 备用坐标: ({self.send_button_x}, {self.send_button_y})")
-        print(f"    → 实际点击: ({click_x}, {click_y})")
-        pyautogui.moveTo(click_x, click_y, duration=0.3)
-        time.sleep(0.2)
-        pyautogui.click(click_x, click_y)
-        return True
+        return False
     
     def leave_comment(
         self, 

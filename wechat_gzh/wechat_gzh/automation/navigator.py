@@ -127,7 +127,7 @@ class Navigator:
         print(f"    → 配置坐标: ({self.article_area_x}, {self.article_area_y})")
         print(f"    → 实际点击: ({click_x}, {click_y}) [缩放 {SCREEN_SCALE}x]")
     
-    def scroll_account_list(self, direction: str = "down", amount: int = 3) -> None:
+    def scroll_account_list(self, direction: str = "down", amount: int = None) -> None:
         """
         滚动公众号列表
         
@@ -141,6 +141,13 @@ class Navigator:
         
         pyautogui.moveTo(scroll_x, scroll_y)
         time.sleep(0.2)
+        
+        # 默认滚动量处理
+        if amount is None:
+            if platform.system() == "Windows":
+                amount = 300
+            else:
+                amount = 3
         
         # 滚动
         scroll_amount = amount if direction == "up" else -amount
@@ -167,30 +174,35 @@ class Navigator:
         # 这里使用小步滚动来提高精度
         target_pixels = self.account_item_height / SCREEN_SCALE  # 转换为逻辑像素
         
-        # 经验值：每次 scroll(1) 约滚动 30-40 像素（取决于系统设置）
-        # 为了更精确，我们使用多次小滚动
-        scroll_units = max(1, int(target_pixels / 35))  # 约 35 像素一个单位
+        if platform.system() == "Windows":
+             # Windows 下 scroll 是以 click 为单位 (1 click = 120)，需要较大值
+             # 假设 account_item_height 约 70-100，相当于滚轮滚一下左右
+             # 我们设置为 120 (一格) 或更多
+             scroll_units = 150
+        else:
+            # Mac 下 scroll 是以步/像素为单位
+            # 经验值：每次 scroll(1) 约滚动 30-40 像素（取决于系统设置）
+            scroll_units = max(1, int(target_pixels / 35))  # 约 35 像素一个单位
         
         scroll_amount = scroll_units if direction == "up" else -scroll_units
         pyautogui.scroll(scroll_amount)
         
-        print(f"    📜 滚动列表: {scroll_units} 单位 (目标 {target_pixels:.0f} 逻辑像素)")
+        print(f"    📜 滚动列表: {scroll_units} 单位")
     
-    def scroll_article(self, direction: str = "down", amount: int = 5) -> None:
+    def scroll_article(self, direction: str = "down", amount: int = None) -> None:
         """
         滚动文章内容（文章详情页打开后）
         
         Args:
             direction: 滚动方向，"up" 或 "down"
-            amount: 滚动量
+            amount: 滚动量，Windows下通常需要较大的值（如300），Mac下较小（如5）
         """
-        # 文章详情页通常全屏显示，使用屏幕中心位置滚动
-        screen_width, screen_height = pyautogui.size()
-        scroll_x = screen_width // 2
-        scroll_y = screen_height // 2
-        
-        pyautogui.moveTo(scroll_x, scroll_y)
-        time.sleep(0.1)
+        # 根据平台设置默认滚动量
+        if amount is None:
+            if platform.system() == "Windows":
+                amount = 300  # Windows 默认滚动幅度加大 (约2.5次滚轮刻度)
+            else:
+                amount = 5    # Mac 默认保持较小
         
         scroll_amount = amount if direction == "up" else -amount
         pyautogui.scroll(scroll_amount)
@@ -231,12 +243,16 @@ class Navigator:
         
         from .utils import interrupt_handler
         
+        # 根据平台设置参数
+        is_windows = platform.system() == "Windows"
+        scroll_step = 300 if is_windows else 10
+        
         for i in range(max_scrolls):
             # 检查中断
             interrupt_handler.check()
             
             # 向上滚动
-            self.scroll_article("up", 10)
+            self.scroll_article("up", scroll_step)
             time.sleep(0.2)
             scroll_count += 1
             
@@ -316,6 +332,10 @@ class Navigator:
         
         from .utils import interrupt_handler
         
+        # 确保鼠标在屏幕中间，防止无法滚动
+        screen_width, screen_height = pyautogui.size()
+        pyautogui.moveTo(screen_width // 2, screen_height // 2)
+        
         # 识别第一屏内容（滚动前）
         if has_ocr and ocr_screens > 0:
             try:
@@ -329,17 +349,24 @@ class Navigator:
             except Exception as e:
                 print(f"    ⚠ OCR 识别出错: {e}")
         
+        # 根据平台调整滚动参数
+        is_windows = platform.system() == "Windows"
+        scroll_step = 300 if is_windows else 5  # Windows 需要更大的滚动值
+        sleep_time = 0.1 if is_windows else 0.4 # Windows 滚动响应较快，减少等待
+        
         while scroll_count < max_scrolls:
             # 检查中断
             interrupt_handler.check()
             
             # 滚动
-            self.scroll_article("down", 5)
-            time.sleep(0.4)
+            self.scroll_article("down", scroll_step)
+            time.sleep(sleep_time)
             scroll_count += 1
             
             # 识别更多屏内容（第 2 屏开始，每滚动几次识别一次）
-            if has_ocr and scroll_count <= ocr_screens * 3 and scroll_count % 3 == 0:
+            # Windows 滚动幅度大，可以每滚动 2 次识别一次
+            check_interval = 2 if is_windows else 3
+            if has_ocr and scroll_count <= ocr_screens * check_interval and scroll_count % check_interval == 0:
                 screen_num = len(article_content_parts) + 1
                 if screen_num <= ocr_screens:
                     try:

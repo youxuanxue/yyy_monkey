@@ -19,9 +19,6 @@ COLORS = {
     "navigator_article": (0, 255, 0),      # 绿色 - 文章位置
     "ocr_name": (0, 0, 255),               # 蓝色 - 公众号名称 OCR 区域
     "ocr_title": (255, 165, 0),            # 橙色 - 文章标题 OCR 区域
-    "commenter_button": (255, 0, 255),     # 紫色 - 留言按钮
-    "commenter_input": (0, 255, 255),      # 青色 - 留言输入框
-    "commenter_send": (255, 255, 0),       # 黄色 - 发送按钮
 }
 
 # 标签文字
@@ -30,9 +27,6 @@ LABELS = {
     "navigator_article": "文章位置",
     "ocr_name": "公众号名称 OCR",
     "ocr_title": "文章标题 OCR",
-    "commenter_button": "留言按钮",
-    "commenter_input": "输入框",
-    "commenter_send": "发送按钮",
 }
 
 
@@ -238,7 +232,6 @@ class CalibrationVisualizer:
         
         nav = calibration.navigator
         ocr = calibration.ocr
-        comm = calibration.commenter
         
         # 1. 绘制公众号列表位置（前3个位置）
         color = COLORS["navigator_account"]
@@ -269,24 +262,6 @@ class CalibrationVisualizer:
         x2 = x1 + ocr.article_title_width
         y2 = y1 + ocr.article_title_height
         self._draw_rect(draw, x1, y1, x2, y2, color, "标题")
-        
-        # 5. 绘制留言按钮位置
-        color = COLORS["commenter_button"]
-        x = offset_x + comm.comment_button_x
-        y = offset_y + comm.comment_button_y
-        self._draw_point(draw, x, y, color, "留言")
-        
-        # 6. 绘制输入框位置
-        color = COLORS["commenter_input"]
-        x = offset_x + comm.comment_input_x
-        y = offset_y + comm.comment_input_y
-        self._draw_point(draw, x, y, color, "输入")
-        
-        # 7. 绘制发送按钮位置
-        color = COLORS["commenter_send"]
-        x = offset_x + comm.send_button_x
-        y = offset_y + comm.send_button_y
-        self._draw_point(draw, x, y, color, "发送")
         
         return image
     

@@ -127,7 +127,7 @@ def main() -> None:
         
         # 1. 评论（如果需要）- 优先执行，避免页面状态变化后无法获取视频描述
         if result and result.get("comment"):
-            comment = result.get("comment")
+            comment = result.get("comment") + "👍已关盼回👍"
             # 直接发送评论，此时页面状态还未变化，不需要重新获取 topic_text
             if comment and bot.send_comment(comment):
                 commented_count += 1

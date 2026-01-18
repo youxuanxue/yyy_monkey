@@ -224,9 +224,13 @@ class LLMCommentGenerator:
             if model:
                 return model
             
-            # 默认模型：优先使用 qwen2.5:3b，因为效果较好且体积适中
-            # 打包时应确保该模型已 pull
-            return "qwen2.5:3b"
+            # 默认模型策略
+            if platform.system() == "Windows":
+                # Windows 下使用 1.5b 模型以提高速度
+                return "qwen2.5:1.5b"
+            else:
+                # 其他系统使用 3b 模型
+                return "qwen2.5:3b"
         else:
             return "gpt-3.5-turbo"
     
@@ -291,15 +295,18 @@ class LLMCommentGenerator:
                 return None
             
             # 格式化 user_prompt
+            # 优化：限制文章内容长度，提高生成速度
+            # 对于评论生成任务，通常前 800 个字符已足够理解大意
             user_prompt = user_prompt_template.format(
-                article_content=article_content[:2000]  # 限制长度
+                article_content=article_content[:800]
             )
             
             # 获取模型
             model_name = os.environ.get("OPENAI_MODEL", self._get_default_model())
             
             # 调用 LLM API
-            logger.info(f"正在调用 LLM 生成评论 (模型: {model_name})...")
+            start_time = time.time()
+            logger.info(f"正在调用 LLM 生成评论 (模型: {model_name}, 输入长度: {len(article_content[:800])})...")
             
             response = self.client.chat.completions.create(
                 model=model_name,
@@ -310,6 +317,9 @@ class LLMCommentGenerator:
                 temperature=0.7,
                 max_tokens=150,
             )
+            
+            elapsed = time.time() - start_time
+            logger.info(f"LLM 生成耗时: {elapsed:.2f}s")
             
             comment = response.choices[0].message.content.strip()
             
@@ -331,6 +341,55 @@ class LLMCommentGenerator:
             logger.error(f"生成评论失败: {e}")
             return None
     
+    def warmup(self, timeout: float = 180.0) -> bool:
+        """
+        预热模型（触发加载到内存）
+        
+        Args:
+            timeout: 超时时间（秒）
+        """
+        if not self.is_available():
+            return False
+            
+        try:
+            logger.info("正在预热 LLM 模型...")
+            
+            # 使用 threading 来实现超时控制
+            import threading
+            result = {"success": False, "error": None}
+            
+            def _warmup_task():
+                try:
+                    start_time = time.time()
+                    # 发送一个极简请求
+                    self.client.chat.completions.create(
+                        model=os.environ.get("OPENAI_MODEL", self._get_default_model()),
+                        messages=[{"role": "user", "content": "hi"}],
+                        max_tokens=1
+                    )
+                    logger.info(f"模型预热完成 (耗时: {time.time() - start_time:.2f}s)")
+                    result["success"] = True
+                except Exception as e:
+                    result["error"] = e
+            
+            t = threading.Thread(target=_warmup_task)
+            t.daemon = True
+            t.start()
+            t.join(timeout)
+            
+            if t.is_alive():
+                logger.warning(f"模型预热超时 ({timeout}s)，将跳过等待，后续可能会较慢")
+                return False
+                
+            if result["error"]:
+                logger.warning(f"模型预热失败: {result['error']}")
+                return False
+                
+            return result["success"]
+        except Exception as e:
+            logger.warning(f"模型预热过程出错: {e}")
+            return False
+
     def cleanup(self) -> None:
         """清理资源"""
         if self.ollama_manager:

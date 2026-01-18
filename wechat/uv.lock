@@ -3296,7 +3296,7 @@ wheels = [
 ]
 
 [[package]]
-name = "wechat-client-auto"
+name = "wechat-bot"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

@@ -151,7 +151,11 @@ class App:
         ttk.Label(model_frame, text="模型名称:").pack(side="left")
         self.entry_model = ttk.Entry(model_frame)
         self.entry_model.pack(side="left", fill="x", expand=True, padx=5)
-        self.entry_model.insert(0, os.environ.get("OLLAMA_MODEL", "qwen2.5:3b"))
+        
+        # 默认模型逻辑：Windows 使用 qwen2.5:1.5b，其他使用 qwen2.5:3b
+        import platform
+        default_model = "qwen2.5:1.5b" if platform.system() == "Windows" else "qwen2.5:3b"
+        self.entry_model.insert(0, os.environ.get("OLLAMA_MODEL", default_model))
         
         # --- 位置校准配置 ---
         calib_frame = ttk.LabelFrame(scrollable_frame, text="位置校准 (坐标配置)", padding="10")
@@ -206,16 +210,6 @@ class App:
             ("article_title_y", "文章标题 Y"),
             ("article_title_width", "文章标题 宽度"),
             ("article_title_height", "文章标题 高度"),
-        ])
-        
-        # Commenter
-        add_section(calib_frame, "留言器 (Commenter)", "commenter", [
-            ("comment_button_x", "留言按钮 X"),
-            ("comment_button_y", "留言按钮 Y"),
-            ("comment_input_x", "输入框 X"),
-            ("comment_input_y", "输入框 Y"),
-            ("send_button_x", "发送按钮 X"),
-            ("send_button_y", "发送按钮 Y"),
         ])
         
         # 保存按钮

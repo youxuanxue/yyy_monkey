@@ -8,14 +8,13 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "pyautogui>=0.9.54",
     "pillow>=10.4.0",
-    "pyobjc-framework-quartz>=10.3.2",
-    "pyobjc-framework-applicationservices>=10.3.2",
     "pyperclip>=1.8.0",
     "numpy>=1.24.0",
     "cnocr>=2.3.0",
     "cnstd>=1.2.3",
     "onnxruntime>=1.16.0",
     "openai>=1.0.0",
+    "pyinstaller>=6.18.0",
 ]
 
 [build-system]

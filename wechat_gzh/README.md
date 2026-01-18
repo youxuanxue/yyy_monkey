@@ -53,24 +53,28 @@ uv run python -m wechat_gzh.get_users
 
 #### 前置要求
 
-1. **macOS 系统**
+1. **操作系统**：macOS 或 Windows 11
 2. **微信桌面客户端**（需要已登录）
-3. **辅助功能权限**（系统偏好设置 > 安全性与隐私 > 隐私 > 辅助功能）
-4. **tesseract OCR 引擎**（`brew install tesseract tesseract-lang`）
+3. **OCR 引擎**（Tesseract）
+    - macOS: `brew install tesseract tesseract-lang`
+    - Windows: 下载并安装 [Tesseract-OCR](https://github.com/UB-Mannheim/tesseract/wiki)，并确保添加到 PATH 环境变量
+4. **macOS 额外权限**：辅助功能权限（系统偏好设置 > 安全性与隐私 > 隐私 > 辅助功能）
+
+#### Windows 适配特别说明
+
+首次在 Windows 上运行时，需要准备图像识别资源：
+
+1. 确保微信界面为默认皮肤（浅色模式）
+2. 手动采集以下按钮图片并保存到 `wechat_gzh/assets/win/` 目录下（文件名必须一致）：
+   - `comment_button.png` (写留言按钮)
+   - `comment_input.png` (留言输入框)
+   - `send_button.png` (发送按钮)
 
 #### 使用方法
 
 ```bash
-# 正常运行（首次需要校准，之后会询问是否使用上次配置）
+# 正常运行（自动加载校准配置，如不存在则初始化默认值）
 uv run python -m wechat_gzh.auto_comment
-
-# 跳过校准，直接使用上次保存的配置
-uv run python -m wechat_gzh.auto_comment -s
-uv run python -m wechat_gzh.auto_comment --skip-calibration
-
-# 强制重新校准（忽略已保存的配置）
-uv run python -m wechat_gzh.auto_comment -r
-uv run python -m wechat_gzh.auto_comment --recalibrate
 
 # 仅验证校准配置（生成标注截图，不执行自动留言）
 uv run python -m wechat_gzh.auto_comment -v
@@ -79,17 +83,12 @@ uv run python -m wechat_gzh.auto_comment --verify
 # 限制最多处理 10 个公众号
 uv run python -m wechat_gzh.auto_comment -n 10
 uv run python -m wechat_gzh.auto_comment --max-accounts 10
-
-# 组合使用
-uv run python -m wechat_gzh.auto_comment -s -n 5  # 跳过校准，处理 5 个
 ```
 
 #### 命令行参数
 
 | 参数 | 简写 | 说明 |
 |------|------|------|
-| `--skip-calibration` | `-s` | 跳过校准，直接使用上次保存的配置 |
-| `--recalibrate` | `-r` | 强制重新校准（忽略已保存的配置） |
 | `--verify` | `-v` | 仅验证校准配置（生成标注截图后退出） |
 | `--max-accounts N` | `-n N` | 最大处理公众号数量，0 表示不限制 |
 | `--debug-screenshot` | | 启用调试截图（保存调试截图和 OCR 区域截图） |
@@ -147,7 +146,6 @@ wechat_gzh/                      # 项目根目录
 │   ├── llm_client.py            # LLM 评论生成客户端
 │   └── automation/              # GUI 自动化子模块
 │       ├── __init__.py
-│       ├── window.py            # 窗口管理
 │       ├── navigator.py         # 导航操作
 │       ├── commenter.py         # 留言操作
 │       ├── ocr.py               # OCR 识别
@@ -159,6 +157,7 @@ wechat_gzh/                      # 项目根目录
 │   │   ├── comment_button.png   # 留言按钮图片
 │   │   ├── comment_input.png    # 输入框图片
 │   │   └── send_button.png      # 发送按钮图片
+│   ├── win/                     # Windows 平台资源（需手动截图）
 │   └── README.md                # 资源说明
 ├── config/                      # 配置文件目录
 │   ├── calibration.json         # 校准配置（自动保存）
@@ -177,7 +176,8 @@ wechat_gzh/                      # 项目根目录
 ## 注意事项
 
 1. 自动留言功能使用 GUI 自动化技术，依赖屏幕坐标
-2. 首次运行需要进行位置校准，校准后配置会自动保存
-3. 如果微信窗口位置/大小改变，需要重新校准（使用 `-r` 参数）
-4. 请妥善保管 `.env` 文件
-5. 建议先在测试账号上验证
+2. 首次运行会自动生成默认校准配置 `wechat_gzh/config/calibration.json`
+3. 建议首次运行后使用 `-v` 参数验证位置，并根据实际情况修改配置文件
+4. 如果微信窗口位置/大小改变，请更新配置文件
+5. 请妥善保管 `.env` 文件
+6. 建议先在测试账号上验证

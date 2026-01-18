@@ -3,11 +3,11 @@
 """
 
 import time
+import platform
 from typing import Tuple, Optional, TYPE_CHECKING
 
 import pyautogui
 
-from .window import WeChatWindow
 from .utils import random_sleep
 
 if TYPE_CHECKING:
@@ -21,19 +21,21 @@ def get_screen_scale() -> float:
     Returns:
         缩放比例，普通屏幕为 1.0，Retina 为 2.0
     """
+    # 尝试通过截图和 pyautogui 尺寸比较来检测
     try:
-        from AppKit import NSScreen
-        screen = NSScreen.mainScreen()
-        scale = screen.backingScaleFactor()
-        return float(scale)
-    except ImportError:
-        # 如果无法导入 AppKit，尝试通过截图和 pyautogui 尺寸比较来检测
         screenshot = pyautogui.screenshot()
         screen_size = pyautogui.size()
-        scale = screenshot.width / screen_size[0]
-        return scale
+        # 避免除零错误
+        if screen_size[0] > 0:
+            scale = screenshot.width / screen_size[0]
+            # 如果比例接近 1.0 (0.9-1.1)，直接返回 1.0
+            if 0.9 < scale < 1.1:
+                return 1.0
+            return scale
     except Exception:
-        return 1.0
+        pass
+        
+    return 1.0
 
 
 # 全局缩放比例（启动时检测一次）
@@ -44,14 +46,10 @@ print(f"📺 屏幕缩放比例: {SCREEN_SCALE}x")
 class Navigator:
     """微信导航操作类"""
     
-    def __init__(self, window: WeChatWindow):
+    def __init__(self):
         """
         初始化导航器
-        
-        Args:
-            window: WeChatWindow 实例
         """
-        self.window = window
         
         # 公众号列表相关位置配置
         # 这些值可能需要根据实际屏幕调整
@@ -66,6 +64,8 @@ class Navigator:
         # 返回按钮位置（文章页面左上角的返回按钮）
         self.back_button_x = 550  # 返回按钮 X 偏移
         self.back_button_y = 60   # 返回按钮 Y 偏移
+        
+        self._positions_calibrated = False
     
     def load_calibration(self, calibration: "NavigatorCalibration") -> None:
         """
@@ -385,8 +385,10 @@ class Navigator:
         return scroll_count, article_content
     
     def go_back(self) -> None:
-        """返回上一页（使用 Command+W 关闭当前窗口）"""
-        pyautogui.hotkey("command", "w")
+        """返回上一页（使用快捷键关闭当前窗口）"""
+        # macOS 使用 command+w，Windows 使用 ctrl+w
+        modifier = "command" if platform.system() == "Darwin" else "ctrl"
+        pyautogui.hotkey(modifier, "w")
         time.sleep(0.5)
     
     def click_at_position(self, x: int, y: int) -> None:
@@ -421,79 +423,3 @@ class Navigator:
             seconds: 等待秒数
         """
         time.sleep(seconds)
-
-
-class InteractiveNavigator(Navigator):
-    """交互式导航器 - 支持用户手动指定位置"""
-    
-    COUNTDOWN_SECONDS = 5  # 倒计时秒数
-    
-    def __init__(self, window: WeChatWindow):
-        super().__init__(window)
-        self._positions_calibrated = False
-    
-    def _countdown_capture(self, prompt: str) -> tuple:
-        """
-        倒计时后捕获鼠标位置
-        
-        Args:
-            prompt: 提示信息
-            
-        Returns:
-            (x, y) 鼠标位置
-        """
-        print(f"\n{prompt}")
-        print(f"请在 {self.COUNTDOWN_SECONDS} 秒内将鼠标移动到目标位置...")
-        print()
-        
-        for i in range(self.COUNTDOWN_SECONDS, 0, -1):
-            print(f"  {i}...", end=" ", flush=True)
-            time.sleep(1)
-        
-        x, y = pyautogui.position()
-        print(f"\n  ✓ 已捕获位置: ({x}, {y})")
-        return x, y
-    
-    def calibrate_positions(self) -> None:
-        """
-        交互式校准各个位置（使用倒计时方式，直接使用屏幕绝对坐标）
-        """
-        print("\n" + "=" * 60)
-        print("位置校准模式（使用屏幕绝对坐标）")
-        print("=" * 60)
-        print(f"每个位置有 {self.COUNTDOWN_SECONDS} 秒倒计时")
-        print("请在倒计时结束前将鼠标移动到目标位置")
-        print("=" * 60)
-        
-        input("\n按 Enter 开始校准第一个位置...")
-        
-        # 校准公众号列表位置（直接使用屏幕坐标）
-        x1, y1 = self._countdown_capture("【第一个公众号】- 请将鼠标移动到第一个公众号上")
-        self.account_list_x = x1
-        self.account_list_y_start = y1
-        print(f"  → 屏幕坐标: ({self.account_list_x}, {self.account_list_y_start})")
-        
-        input("\n按 Enter 开始校准第二个位置...")
-        
-        x2, y2 = self._countdown_capture("【第二个公众号】- 请将鼠标移动到第二个公众号上")
-        self.account_item_height = y2 - y1
-        print(f"  → 公众号项高度: {self.account_item_height}px")
-        
-        input("\n按 Enter 开始校准第三个位置...")
-        
-        # 校准文章区域位置（直接使用屏幕坐标）
-        x3, y3 = self._countdown_capture("【最新文章/消息】- 请将鼠标移动到要点击的文章消息上")
-        self.article_area_x = x3
-        self.article_area_y = y3
-        print(f"  → 屏幕坐标: ({self.article_area_x}, {self.article_area_y})")
-        
-        print("\n" + "=" * 60)
-        print("✓ 导航位置校准完成！")
-        print("=" * 60)
-        
-        self._positions_calibrated = True
-    
-    def ensure_calibrated(self) -> None:
-        """确保已经校准"""
-        if not self._positions_calibrated:
-            self.calibrate_positions()

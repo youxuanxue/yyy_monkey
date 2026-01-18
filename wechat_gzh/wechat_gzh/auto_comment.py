@@ -23,9 +23,8 @@ from pathlib import Path
 from typing import Optional
 
 from .config import COMMENT_TEXT, CONFIG_DIR, HISTORY_FILE, LOG_DIR, TIMING
-from .automation.window import WeChatWindow
-from .automation.navigator import InteractiveNavigator
-from .automation.commenter import InteractiveCommenter
+from .automation.navigator import Navigator
+from .automation.commenter import Commenter
 from .automation.ocr import OCRReader
 from .automation.calibration import CalibrationManager, CalibrationData
 from .automation.visualizer import CalibrationVisualizer
@@ -51,13 +50,11 @@ def restore_default_handler():
 class AutoCommentBot:
     """自动留言机器人"""
     
-    def __init__(self, skip_calibration: bool = False, recalibrate: bool = False, verify_only: bool = False, enable_debug_screenshot: bool = False):
+    def __init__(self, verify_only: bool = False, enable_debug_screenshot: bool = False):
         """
         初始化机器人
         
         Args:
-            skip_calibration: 跳过校准，使用上次保存的配置
-            recalibrate: 强制重新校准
             verify_only: 仅验证校准配置（生成标注截图后退出）
             enable_debug_screenshot: 是否启用调试截图（默认 False，需要显式传入 True 才保存）
         """
@@ -66,15 +63,12 @@ class AutoCommentBot:
         self.calibration_mgr = CalibrationManager(CONFIG_DIR)
         self.visualizer = CalibrationVisualizer(LOG_DIR)
         
-        self.skip_calibration = skip_calibration
-        self.recalibrate = recalibrate
         self.verify_only = verify_only
         self.enable_debug_screenshot = enable_debug_screenshot
         
         # 初始化窗口和导航器
-        self.window = WeChatWindow()
-        self.navigator = InteractiveNavigator(self.window)
-        self.commenter = InteractiveCommenter(self.navigator)
+        self.navigator = Navigator()
+        self.commenter = Commenter(self.navigator)
         self.ocr = OCRReader()
         
         # 初始化 LLM 评论生成器
@@ -106,29 +100,27 @@ class AutoCommentBot:
     
     def calibrate(self) -> bool:
         """
-        校准位置（支持加载已保存的配置）
+        加载校准配置
         
         Returns:
-            如果成功完成校准或加载配置返回 True
+            总是返回 True
         """
-        # 检查是否可以跳过校准
-        if self.skip_calibration and not self.recalibrate:
-            if self.calibration_mgr.has_calibration():
-                return self._load_saved_calibration()
-            else:
-                print("⚠ 未找到已保存的校准配置，需要进行校准")
-        
-        # 检查是否有已保存的配置可以复用
-        if not self.recalibrate and self.calibration_mgr.has_calibration():
-            print("\n" + "=" * 60)
-            print("发现已保存的校准配置")
-            print("=" * 60)
-            response = input("是否使用上次的校准配置？[Y/n]: ")
-            if response.lower() != 'n':
-                return self._load_saved_calibration()
-        
-        # 进行新的校准
-        return self._do_calibration()
+        if self.calibration_mgr.has_calibration():
+            print("\n正在加载已保存的校准配置...")
+            self._load_saved_calibration(show_visual=False)
+        else:
+            print("\n未找到校准配置，初始化默认配置...")
+            print(f"配置文件将保存到: {self.calibration_mgr.config_file}")
+            print("请运行 'uv run python -m wechat_gzh.auto_comment -v' 验证并根据需要手动修改配置。")
+            
+            # 标记为已校准
+            self.navigator._positions_calibrated = True
+            self.commenter._positions_calibrated = True
+            
+            # 保存默认配置
+            self._save_calibration()
+            
+        return True
     
     def _load_saved_calibration(self, show_visual: bool = True) -> bool:
         """
@@ -137,7 +129,6 @@ class AutoCommentBot:
         Args:
             show_visual: 是否生成验证截图
         """
-        print("\n正在加载已保存的校准配置...")
         data = self.calibration_mgr.data
         
         self.navigator.load_calibration(data.navigator)
@@ -156,39 +147,6 @@ class AutoCommentBot:
         # 生成验证截图
         if show_visual:
             self.verify_calibration_visual()
-        
-        return True
-    
-    def _do_calibration(self) -> bool:
-        """执行校准流程"""
-        print("\n" + "=" * 60)
-        print("开始位置校准")
-        print("=" * 60)
-        print("请确保微信窗口已打开并显示公众号列表")
-        print("校准过程中请按提示移动鼠标并按 Enter 确认")
-        print("=" * 60)
-        
-        input("\n准备好后按 Enter 开始校准...")
-        
-        # 校准导航器位置
-        self.navigator.calibrate_positions()
-        
-        # 校准公众号名称识别区域
-        print("\n接下来校准公众号名称识别区域（用于自动识别公众号名称）")
-        self.ocr.calibrate()
-        
-        # 询问是否校准留言位置
-        response = input("\n是否现在校准留言位置？(需要先手动打开一篇文章) [y/N]: ")
-        if response.lower() == 'y':
-            self.commenter.calibrate_positions()
-        else:
-            print("跳过留言位置校准，将在处理第一个公众号时进行")
-        
-        # 保存校准配置
-        self._save_calibration()
-        
-        # 生成验证截图
-        self.verify_calibration_visual()
         
         return True
     
@@ -222,9 +180,6 @@ class AutoCommentBot:
         
         print("\n正在生成校准验证截图...")
         
-        # 确保窗口信息是最新的
-        self.window.find_window()
-        
         # 获取当前校准数据
         data = CalibrationData(
             navigator=self.navigator.get_calibration(),
@@ -234,7 +189,7 @@ class AutoCommentBot:
         )
         
         # 生成标注截图
-        output_path = self.visualizer.capture_and_annotate(self.window, data)
+        output_path = self.visualizer.capture_and_annotate(data)
         
         print(f"✓ 校准验证截图已保存: {output_path}")
         print()
@@ -267,18 +222,6 @@ class AutoCommentBot:
         
         # 加载配置（不生成截图）
         self._load_saved_calibration(show_visual=False)
-        
-        # 检查微信是否运行
-        if not self.window.is_wechat_running():
-            print("⚠ 微信未运行，请先打开微信")
-            return False
-        
-        # 找到微信窗口
-        if self.window.find_window():
-            print(f"找到微信窗口: 位置({self.window.x}, {self.window.y}), "
-                  f"大小({self.window.width}x{self.window.height})")
-        else:
-            print("⚠ 无法定位微信窗口，将使用默认值")
         
         # 5秒倒计时后截图
         self.verify_calibration_visual(countdown=5)
@@ -470,17 +413,15 @@ class AutoCommentBot:
                 result["article_title"] = article_title
                 self.logger.info(f"  识别到文章: 【{article_title}】")
             else:
-                # 如果识别失败，退出程序以便排查问题
-                self.logger.error("  ✗ 无法识别文章标题，请检查截图和校准配置")
-                print("\n" + "=" * 60)
-                print("❌ 错误：无法识别文章标题")
-                print("=" * 60)
-                print("请检查以下内容：")
-                print(f"  1. 调试截图: {LOG_DIR}/debug_*.png")
-                print(f"  2. 校准配置: {CONFIG_DIR}/calibration.json")
-                print("  3. 确认 OCR 的 article_title_* 区域是否正确")
-                print("=" * 60)
-                sys.exit(1)
+                # 如果识别失败，不退出，而是跳过该文章
+                self.logger.warning("  ⚠ 无法识别文章标题，跳过此文章")
+                result["skipped"] = True
+                result["error"] = "无法识别文章标题"    
+                # 记录到历史，防止无限重复（使用空标题或特殊标记）
+                # 这里我们记录一个带时间戳的占位符，或者直接不记录，完全跳过
+                # 如果不记录，下次还会尝试。如果一直失败，会一直循环。
+                # 所以最好是跳过并继续下一个。
+                return result
             
             # 检查是否已处理过此公众号的此文章
             if self.history.is_processed(result["account_name"], result["article_title"]):
@@ -493,8 +434,8 @@ class AutoCommentBot:
             
             # 如果留言位置未校准，进行校准
             if not self.commenter._positions_calibrated:
-                print("\n首次处理，需要校准留言位置")
-                self.commenter.calibrate_positions()
+                self.logger.info("首次处理，标记留言位置已校准（使用默认/配置坐标）")
+                self.commenter._positions_calibrated = True
                 # 保存更新后的校准配置
                 self._save_calibration()
             
@@ -626,7 +567,7 @@ class AutoCommentBot:
         print("      按 Ctrl+C 可以随时停止")
         print("=" * 60)
         
-        input("\n确认微信显示公众号列表后，按 Enter 开始...")
+        # input("\n确认微信显示公众号列表后，按 Enter 开始...")
         
         # 等待 5 秒，让用户切回到微信主界面
         print("\n5 秒后开始，请切换到微信窗口...")
@@ -836,23 +777,9 @@ def parse_args():
         epilog="""
 示例：
   uv run python -m wechat_gzh.auto_comment           # 正常运行
-  uv run python -m wechat_gzh.auto_comment -s        # 跳过校准，使用上次配置
-  uv run python -m wechat_gzh.auto_comment -r        # 强制重新校准
   uv run python -m wechat_gzh.auto_comment -v        # 仅验证校准配置（生成标注截图）
   uv run python -m wechat_gzh.auto_comment -n 10     # 最多处理 10 个公众号
         """
-    )
-    
-    parser.add_argument(
-        "-s", "--skip-calibration",
-        action="store_true",
-        help="跳过校准，直接使用上次保存的配置"
-    )
-    
-    parser.add_argument(
-        "-r", "--recalibrate",
-        action="store_true",
-        help="强制重新校准（忽略已保存的配置）"
     )
     
     parser.add_argument(
@@ -866,12 +793,6 @@ def parse_args():
         type=int,
         default=0,
         help="最大处理公众号数量，0 表示不限制（默认：0）"
-    )
-    
-    parser.add_argument(
-        "--calibrate-images",
-        action="store_true",
-        help="截取按钮图片（用于图像识别）"
     )
     
     parser.add_argument(
@@ -900,16 +821,10 @@ def main():
     print("  3. 已授予终端辅助功能权限（系统偏好设置 > 安全性与隐私 > 辅助功能）")
     print()
     
-    if args.calibrate_images:
-        print("模式：截取按钮图片（用于图像识别）")
-    elif args.verify:
+    if args.verify:
         print("模式：仅验证校准配置（生成标注截图）")
-    elif args.skip_calibration:
-        print("模式：跳过校准，使用上次保存的配置")
-    elif args.recalibrate:
-        print("模式：强制重新校准")
     else:
-        print("模式：正常运行（如有保存的配置会询问是否使用）")
+        print("模式：正常运行")
     
     if args.max_accounts > 0 and not args.verify:
         print(f"限制：最多处理 {args.max_accounts} 个公众号")
@@ -921,28 +836,19 @@ def main():
     print("    （校准阶段直接退出，主循环阶段会等待当前操作完成）")
     print()
     
-    response = input("准备好后按 Enter 继续，输入 'q' 退出: ")
-    if response.lower() == 'q':
-        print("已退出")
-        return 0
+    # response = input("准备好后按 Enter 继续，输入 'q' 退出: ")
+    # if response.lower() == 'q':
+    #     print("已退出")
+    #     return 0
+    
     
     try:
         # 截取按钮图片模式
-        if args.calibrate_images:
-            from .automation.window import WeChatWindow
-            from .automation.navigator import Navigator
-            from .automation.commenter import InteractiveCommenter
-            
-            print("\n开始截取按钮图片...")
-            window = WeChatWindow()
-            navigator = Navigator(window)
-            commenter = InteractiveCommenter(navigator)
-            commenter.calibrate_images()
-            return 0
+        # if args.calibrate_images:
+        #     # 功能已移除
+        #     pass
         
         bot = AutoCommentBot(
-            skip_calibration=args.skip_calibration,
-            recalibrate=args.recalibrate,
             verify_only=args.verify,
             enable_debug_screenshot=args.debug_screenshot
         )

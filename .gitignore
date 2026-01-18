@@ -16,3 +16,6 @@ dist/
 build/
 
 license.lic
+
+**/dist/
+**/runtime/

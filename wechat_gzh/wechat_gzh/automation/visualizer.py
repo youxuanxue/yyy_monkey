@@ -11,7 +11,6 @@ from PIL import Image, ImageDraw, ImageFont
 
 if TYPE_CHECKING:
     from .calibration import CalibrationData
-    from .window import WeChatWindow
 
 
 # 颜色定义（RGB）
@@ -52,7 +51,6 @@ class CalibrationVisualizer:
     
     def capture_and_annotate(
         self,
-        window: "WeChatWindow",
         calibration: "CalibrationData",
         output_filename: Optional[str] = None
     ) -> str:
@@ -60,7 +58,6 @@ class CalibrationVisualizer:
         截取整个屏幕并标注校准位置
         
         Args:
-            window: 微信窗口对象
             calibration: 校准数据
             output_filename: 输出文件名（不含路径），默认自动生成
             
@@ -69,33 +66,34 @@ class CalibrationVisualizer:
         """
         # 截取整个屏幕
         screenshot = pyautogui.screenshot()
+        screen_width, screen_height = screenshot.size
         
-        # 窗口在截图中的位置就是其绝对坐标
-        window_x = window.x
-        window_y = window.y
+        # 窗口坐标 (使用全屏)
+        window_x = 0
+        window_y = 0
         
-        # 在截图上绘制微信窗口边框
+        # 在截图上绘制屏幕边框
         annotated = self._draw_window_border(
             screenshot, 
             window_x, 
             window_y, 
-            window.width, 
-            window.height
+            screen_width, 
+            screen_height
         )
         
         # 在截图上绘制标注
         annotated = self._draw_annotations(
             annotated, 
             calibration, 
-            window_x,  # 偏移量就是窗口的绝对坐标
+            window_x, 
             window_y
         )
         
         # 添加图例
         annotated = self._draw_legend(annotated)
         
-        # 添加窗口信息
-        annotated = self._draw_window_info(annotated, window)
+        # 添加信息
+        annotated = self._draw_info(annotated, screen_width, screen_height)
         
         # 生成文件名
         if output_filename is None:
@@ -171,17 +169,19 @@ class CalibrationVisualizer:
         
         return image
     
-    def _draw_window_info(
+    def _draw_info(
         self,
         image: Image.Image,
-        window: "WeChatWindow"
+        width: int,
+        height: int
     ) -> Image.Image:
         """
-        在图像左上角绘制窗口信息
+        在图像左上角绘制信息
         
         Args:
             image: 原始图像
-            window: 微信窗口对象
+            width: 屏幕宽度
+            height: 屏幕高度
             
         Returns:
             添加信息后的图像
@@ -190,15 +190,13 @@ class CalibrationVisualizer:
         
         # 信息文字
         info_lines = [
-            f"微信窗口位置: ({window.x}, {window.y})",
-            f"微信窗口大小: {window.width} x {window.height}",
-            f"屏幕大小: {image.width} x {image.height}",
+            f"屏幕大小: {width} x {height}",
         ]
         
         # 绘制背景
         padding = 10
         line_height = 20
-        box_width = 280
+        box_width = 200
         box_height = len(info_lines) * line_height + padding * 2
         
         draw.rectangle(
@@ -398,7 +396,6 @@ class CalibrationVisualizer:
 
 
 def verify_calibration(
-    window: "WeChatWindow",
     calibration: "CalibrationData",
     output_dir: str
 ) -> str:
@@ -406,7 +403,6 @@ def verify_calibration(
     验证校准配置的便捷函数
     
     Args:
-        window: 微信窗口对象
         calibration: 校准数据
         output_dir: 输出目录
         
@@ -414,4 +410,4 @@ def verify_calibration(
         保存的截图路径
     """
     visualizer = CalibrationVisualizer(output_dir)
-    return visualizer.capture_and_annotate(window, calibration)
+    return visualizer.capture_and_annotate(calibration)

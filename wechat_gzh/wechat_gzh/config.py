@@ -93,14 +93,9 @@ WECHAT = {
     "visible_accounts": 10,
 }
 
-# Ollama 配置
+# Ollama 配置（使用系统安装的 Ollama）
 OLLAMA_CONFIG = {
-    # 内置 Ollama 的相对路径 (相对于 PROJECT_DIR)
-    "bin_path": os.path.join("runtime", "ollama"),  # Mac/Linux
-    "bin_path_win": os.path.join("runtime", "ollama.exe"),  # Windows
-    # 内置模型库的相对路径
-    "models_path": os.path.join("runtime", "ollama_models"),
-    # 服务端口
+    # 服务地址和端口
     "host": "127.0.0.1",
     "port": 11434,
 }

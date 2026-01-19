@@ -1,0 +1,255 @@
+{
+  "base_resp": {
+    "ret": 0,
+    "err_msg": ""
+  },
+  "group_info": {
+    "group_info_list": [
+      {
+        "group_name": "未分组",
+        "group_cnt": 109,
+        "group_create_time": 1487385141,
+        "group_id": 0
+      },
+      {
+        "group_name": "星标组",
+        "group_cnt": 0,
+        "group_create_time": 1487385141,
+        "group_id": 2
+      },
+      {
+        "group_name": "family-hu",
+        "group_cnt": 7,
+        "group_create_time": 1489818048,
+        "group_id": 100
+      },
+      {
+        "group_name": "恒大名都",
+        "group_cnt": 2,
+        "group_create_time": 1560775430,
+        "group_id": 101
+      },
+      {
+        "group_name": "科大",
+        "group_cnt": 1,
+        "group_create_time": 1567948145,
+        "group_id": 102
+      },
+      {
+        "group_name": "中科院",
+        "group_cnt": 1,
+        "group_create_time": 1567948156,
+        "group_id": 103
+      },
+      {
+        "group_name": "屏蔽组",
+        "group_cnt": 0,
+        "group_id": 1
+      }
+    ]
+  },
+  "user_list": {
+    "user_info_list": [
+      {
+        "user_openid": "o1ridv77Z8PID-BoQp2eQwgkA01Y",
+        "user_name": "巧燕[爱心]",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768359450,
+        "user_head_img": "https://wx.qlogo.cn/mmopen/QnM5bMcic4Z2oTYrdrvNgyh33egf9OZDhfLkN2YJT1zhrCKFH6JvAtQ8JNhc6royia9UfjmME7mVXiad2eKbO3EBW7cALpht6OW/64",
+        "identity_type": 0,
+        "identity_open_id": "B-X1Gyq4RYXGLjh1XOswhw"
+      },
+      {
+        "user_openid": "o1ridv4Er2YntI1nT7lpZhxagKlQ",
+        "user_name": "老马识途4358",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768359076,
+        "user_head_img": "http://wx.qlogo.cn/mmhead/I1YzhXxW8YChicxNxwhJtMiaRvYb1U2MNuddlBu8W5xqgvSSx6YY0RTOosVxlXYNAfibmAoc8CMu1g/64",
+        "identity_type": 1,
+        "identity_open_id": "5oJLPyd60Wny04adpzt8sQ"
+      },
+      {
+        "user_openid": "o1ridv1c-9xu6zgSejhxJ3O0gCyE",
+        "user_name": "影子",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768358812,
+        "user_head_img": "https://wx.qlogo.cn/mmopen/Sl52dX47aXY1lnvHIwgEp7JOd5mU7e3zooxmFaRibuDPar7mljbhTF2oyiaom65ia1z4poAD8Yiby8tpL2eTJYLSwic6PJK1mqJo8AIxkBRYHwuAHmtk6lYpsf9sEIgwNszIV/64",
+        "identity_type": 0,
+        "identity_open_id": "qn45REe5eDA69gstWDV5KA"
+      },
+      {
+        "user_openid": "o1ridv-l4LzjoB3ssBRXBXrXfl3k",
+        "user_name": "丙寅6185",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768357963,
+        "user_head_img": "http://wx.qlogo.cn/mmhead/eytJa9K5jkqEzCibfQdzn4OU8e9o9eJOHpZr2kUVStyM0c0icXicprNH357ibSUcE6GVLdic1jhiccrFM/64",
+        "identity_type": 1,
+        "identity_open_id": "0idfCAyak4QejEpKFiirAw"
+      },
+      {
+        "user_openid": "o1ridv79LZN2l9rAShhStueKvHqg",
+        "user_name": "嘟嘟哒不烦恼",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768357882,
+        "user_head_img": "http://wx.qlogo.cn/mmhead/Szib8ySqErWK0UXcQI1cOs7JhGUcnjibPPFPLPEDiaBM6XaRlhXSibotIdN0IpfckAVoZfMDAq4N9dI/64",
+        "identity_type": 1,
+        "identity_open_id": "RUWcO5hLpiJa0RcZgX0OaA"
+      },
+      {
+        "user_openid": "o1ridv2mYxx-hNAvuICqfdKyr85M",
+        "user_name": "则次之",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768357810,
+        "user_head_img": "http://wx.qlogo.cn/mmhead/GPyw0pGicibl7Myvu7Z16MRbT7w18aE5wVsjic2aA7g2kWbW6P1BtEK7znK3sdXCjo4n0VVA1fXVZ8/64",
+        "identity_type": 1,
+        "identity_open_id": "nxmbpsJNEFVO9bqQX8Wy6w"
+      },
+      {
+        "user_openid": "o1ridv5yhxS7AS1VCt1esXBceKEI",
+        "user_name": "游影水清",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768357719,
+        "user_head_img": "https://wx.qlogo.cn/mmopen/C510uZbKcj87qZkg7hlIVrEMa2puGTnt5QSEbicVxwl3pL0w6BGFksEfe0iaticu4JNh0qf9cibvUYFFOvGVmDibibQgLTOnWzRYnkpVWrPHaCrz9ko15Ox4VkzKxyoRT37Ff1/64",
+        "identity_type": 0,
+        "identity_open_id": "gYYo9HUK9IBB4z7FaoHzKw"
+      },
+      {
+        "user_openid": "o1ridvwS2RBjXqldfwdJ9vTlOpOo",
+        "user_name": "猎奇收容所",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768356857,
+        "user_head_img": "http://wx.qlogo.cn/mmhead/Q3auHgzwzM4Bt4FLaMl2SsazXCIAiazhogzryHZsQYhxkJ33rTb6Vicg/64",
+        "identity_type": 1,
+        "identity_open_id": "YbXip_SZZe05XjXstLtaUQ"
+      },
+      {
+        "user_openid": "o1ridv5H3AmK1rBONzGATvpjPGmU",
+        "user_name": "仁者上宾",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768356377,
+        "user_head_img": "http://wx.qlogo.cn/mmhead/XxT9TiaJ1ibf1FYQ16iapmOqTXtI7hIicdoXdVrzg2WW7dHgLhakHjIvodCh6NDJJaTDOv3lkticiaXv4/64",
+        "identity_type": 1,
+        "identity_open_id": "lZmaYIyaM1Rl-OG3gEVH-g"
+      },
+      {
+        "user_openid": "o1ridv8f5BTV4OewXfdEVqMsCcgI",
+        "user_name": "兴许有故事",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768356071,
+        "user_head_img": "https://wx.qlogo.cn/mmopen/ufRfdSZcVrUF3cnCnYDEjsZ0d7RJrK5OumK4n3D96WBqm4vb96ABtMLq9BlVianGicbBsnqh64KUPib9Ivhlibeq9raSpW63THXvRHia9g9VsXDvPDum2V0Q5PFISCic8fly5S/64",
+        "identity_type": 0,
+        "identity_open_id": "-30ZC_4VOc0VhF6KGL187w"
+      },
+      {
+        "user_openid": "o1ridvx45K8N5F372O0oe0P8pa_M",
+        "user_name": "前进985",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768355674,
+        "user_head_img": "http://wx.qlogo.cn/mmhead/nibxxlib1VaPfqLCh20TtQCibEqttQPUNZzxgbl5wnYJgvWN5dnqjWz2ZyeTS232Lrlomz0OJTgiap4/64",
+        "identity_type": 1,
+        "identity_open_id": "WOtGAftnFKDMkdmlNQQEWw"
+      },
+      {
+        "user_openid": "o1ridvxwYp8VwUntZTZNjFba0bP0",
+        "user_name": "李导员说生涯规划",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768355326,
+        "user_head_img": "http://wx.qlogo.cn/mmhead/EVPtJJ9TsHzKqib0HZdtpGOngm9ZC3TusccW1JtZfVEGV8uicyekHVgDmrXZInCdwZzyfOGpbDT9A/64",
+        "identity_type": 1,
+        "identity_open_id": "_ZCvP6m0qVDLrDCwu2Iy7g"
+      },
+      {
+        "user_openid": "o1ridv0qEOIXKq0gYS0H-DxqtcUM",
+        "user_name": "懿辉John",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768351260,
+        "user_head_img": "https://wx.qlogo.cn/mmopen/E8zPmVsYmBPvjIcxpbJvyaPEeJoJ68Y5MA9Rz4ZRbXpff9oMibJ9CTovgnbf07siclxkCG68F8lXoicZMQ0GZoUT99KJexOMjrSIw4Ajj1uZupTj7jqCxuR6H7yia5ho2CGg/64",
+        "identity_type": 0,
+        "identity_open_id": "t8Z1KgfZixSKQE9Sd7weAQ"
+      },
+      {
+        "user_openid": "o1ridv-Smwtks0eiMc2Y9hB9x9dw",
+        "user_name": "深漂小日记",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768348122,
+        "user_head_img": "http://wx.qlogo.cn/mmhead/VNMic85jx3X50RcoGNnlkZYicGLXzuDmTQtZkTHvhoSEGMmVLUrytpjnsiaGfic2XBIGgYtTdFISNGI/64",
+        "identity_type": 1,
+        "identity_open_id": "Awuxa4vLptvz5cHVABKJtA"
+      },
+      {
+        "user_openid": "o1ridv6B5BPyBlFHJlpfNuatUzkk",
+        "user_name": "梅葆庄园",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768327379,
+        "user_head_img": "http://wx.qlogo.cn/mmhead/ZqDaDiccbgkjwVGUwB2A2WInndyet8dTVUxMuwzKq56HINFPWVGcMJxmhsuOYoy4YQmCOpjDOcGs/64",
+        "identity_type": 1,
+        "identity_open_id": "dpH6lA9gAvFDuysQYT26Tg"
+      },
+      {
+        "user_openid": "o1ridv50suWzqJtNF-yyG_UGY6-o",
+        "user_name": "云间漫步云端",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768318868,
+        "user_head_img": "http://wx.qlogo.cn/mmhead/KetjXWSVppt4iaibMdiaGqOne5XNXbKzVickbtPORYFtXyABWYR2oHTAmuwXQLVGSPrXiaN3HUY6xLPU/64",
+        "identity_type": 1,
+        "identity_open_id": "WxqFZPssW201FZkb7V-jLQ"
+      },
+      {
+        "user_openid": "o1ridv4MLsQ-4LEe17403p8smcaY",
+        "user_name": "诚诚的小世界",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768317430,
+        "user_head_img": "http://wx.qlogo.cn/mmhead/xPKCxELaaj4pPO2CUeiaNFrxJp03eMC6L3ia5VfoVCHdKeJricA8D33BxFkKqmfpuSC5ldqQn5jhbg/64",
+        "identity_type": 1,
+        "identity_open_id": "fdNQ15DPrUuMmVrJ1mS_lw"
+      },
+      {
+        "user_openid": "o1ridv_VouHceHXDtjbxLD5GK0pc",
+        "user_name": "1+1不等于贰",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768315908,
+        "user_head_img": "http://wx.qlogo.cn/mmhead/LwcbhAmMnZDiamwpI8HADg9pZ2ryj6s5ZbSLHk9iacQ0RTShwrn1X3IJPV1sUjibdePTPaO6bbaryw/64",
+        "identity_type": 1,
+        "identity_open_id": "lYbGjE0jdoRtLbuaXMbjYA"
+      },
+      {
+        "user_openid": "o1ridv3xn7uI6RRb50mLmWoWVbLA",
+        "user_name": "英子",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768314036,
+        "user_head_img": "https://wx.qlogo.cn/mmopen/QnM5bMcic4Z1Pqib6PW62fUblrlOk0iac9Jc4cSxZz3uicic27bXHicV1bY2nu3IsyMknTVqIWFxicTc97XpSw21ZghNa2fxqEoRwuhLa7tGNia9IGDOf5BXRee6Yd3tuXHF7jtl/64",
+        "identity_type": 0,
+        "identity_open_id": "pzkJKMRW2Dw2q9YFJPjihg"
+      },
+      {
+        "user_openid": "o1ridv599PzDY-_-1lQjArtRssvs",
+        "user_name": "轻盈生活志",
+        "user_remark": "",
+        "user_group_id": [],
+        "user_create_time": 1768312847,
+        "user_head_img": "http://wx.qlogo.cn/mmhead/ic3ibEjvYaKJxRYRCZpEDBKCRb9ybzQ469lZBW2lloty59E4DBCzbFd4KF5FXwFRgcpOiaxMrlgUEM/64",
+        "identity_type": 1,
+        "identity_open_id": "TDDTYaEGkg1GDnbeL3Vn3g"
+      }
+    ]
+  }
+}

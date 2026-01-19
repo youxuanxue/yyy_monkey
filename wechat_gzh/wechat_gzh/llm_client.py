@@ -29,7 +29,7 @@ logger = logging.getLogger("wechat-gzh")
 
 
 class OllamaServiceManager:
-    """Ollama 服务管理器"""
+    """Ollama 服务管理器（使用系统安装的 Ollama）"""
     
     _cleanup_registered = False
     
@@ -37,31 +37,16 @@ class OllamaServiceManager:
         self.host = host
         self.port = port
         self.process: Optional[subprocess.Popen] = None
-        self.is_embedded = False  # 是否使用的是内置的 Ollama
-        self.cmd = "ollama"       # 默认命令
-        
+       
         if not OllamaServiceManager._cleanup_registered:
             atexit.register(self.cleanup)
             OllamaServiceManager._cleanup_registered = True
-    
-    def _get_embedded_ollama_path(self) -> Optional[str]:
-        """获取内置 Ollama 可执行文件路径"""
-        system = platform.system()
-        if system == "Windows":
-            bin_path = os.path.join(PROJECT_DIR, OLLAMA_CONFIG["bin_path_win"])
-        else:
-            bin_path = os.path.join(PROJECT_DIR, OLLAMA_CONFIG["bin_path"])
-            
-        if os.path.exists(bin_path):
-            return bin_path
-        return None
 
     def is_running(self) -> bool:
         """检查 Ollama 服务是否正在运行"""
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(1)
-            # 使用配置的 host 和 port
             result = sock.connect_ex((self.host, self.port))
             sock.close()
             return result == 0
@@ -73,43 +58,21 @@ class OllamaServiceManager:
         if self.is_running():
             logger.info(f"Ollama 服务已在运行 ({self.host}:{self.port})")
             return True
-        
-        embedded_path = self._get_embedded_ollama_path()
-        self.cmd = "ollama"  # 默认使用系统命令
-        env = os.environ.copy()
-        
-        # 配置内置 Ollama 环境
-        if embedded_path:
-            logger.info(f"发现内置 Ollama: {embedded_path}")
-            self.is_embedded = True
-            self.cmd = embedded_path
-            
-            # 设置模型路径
-            models_path = os.path.join(PROJECT_DIR, OLLAMA_CONFIG["models_path"])
-            # 确保目录存在
-            os.makedirs(models_path, exist_ok=True)
-            
-            env["OLLAMA_MODELS"] = models_path
-            env["OLLAMA_HOST"] = f"{self.host}:{self.port}"
-            # 禁用自动更新检查
-            env["OLLAMA_NOPRUNE"] = "1" 
-            
-            logger.info(f"设置模型路径: {models_path}")
-        else:
-            # 检查系统是否安装了 ollama
-            try:
-                result = subprocess.run(
-                    ["ollama", "--version"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
-                )
-                if result.returncode != 0:
-                    logger.warning("未找到内置 Ollama，且系统未安装 Ollama")
-                    return False
-            except (subprocess.TimeoutExpired, FileNotFoundError):
-                logger.warning("未找到内置 Ollama，且系统未安装 Ollama")
+  
+        # 检查系统是否安装了 ollama
+        try:
+            result = subprocess.run(
+                ["ollama", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode != 0:
+                logger.warning("系统未安装 Ollama，请先安装: https://ollama.ai")
                 return False
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            logger.warning("系统未安装 Ollama，请先安装: https://ollama.ai")
+            return False
 
         logger.info("正在启动 Ollama 服务...")
         try:
@@ -119,8 +82,11 @@ class OllamaServiceManager:
                 startupinfo = subprocess.STARTUPINFO()
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             
+            env = os.environ.copy()
+            env["OLLAMA_HOST"] = f"{self.host}:{self.port}"
+            
             self.process = subprocess.Popen(
-                [self.cmd, "serve"],
+                ["ollama", "serve"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 start_new_session=True,

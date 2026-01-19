@@ -12,16 +12,7 @@
 
 ## 截取方法
 
-### 方法 1：使用程序自动截取
-
-```bash
-cd /Users/xuejiao/Codes/yyy_monkey/wechat_gzh
-uv run python -m wechat_gzh.auto_comment --calibrate-images
-```
-
-按照提示操作即可。
-
-### 方法 2：手动截取
+### 手动截取
 
 1. 打开微信公众号文章
 2. 滚动到底部找到"写留言"按钮

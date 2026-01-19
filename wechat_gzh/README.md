@@ -55,9 +55,7 @@ uv run python -m wechat_gzh.get_users
 
 1. **操作系统**：macOS 或 Windows 11
 2. **微信桌面客户端**（需要已登录）
-3. **OCR 引擎**（Tesseract）
-    - macOS: `brew install tesseract tesseract-lang`
-    - Windows: 下载并安装 [Tesseract-OCR](https://github.com/UB-Mannheim/tesseract/wiki)，并确保添加到 PATH 环境变量
+3. **Python 依赖**：通过 `uv sync` 自动安装（包含 OCR 库）
 4. **macOS 额外权限**：辅助功能权限（系统偏好设置 > 安全性与隐私 > 隐私 > 辅助功能）
 
 #### Windows 适配特别说明
@@ -77,7 +75,11 @@ uv run python -m wechat_gzh.get_users
 我们提供了一个基于 Web 的现代化图形界面 (NiceGUI)，方便操作和监控。
 
 ```bash
-uv run python wechat_gzh/web_app.py
+# 在 wechat_gzh 目录下运行
+uv run python web_app.py
+
+# 或者从项目根目录运行
+uv run python -m wechat_gzh.web_app
 ```
 
 启动后，浏览器会自动打开 `http://localhost:8080`。你可以在界面上：
@@ -120,9 +122,8 @@ uv run python -m wechat_gzh.auto_comment --max-accounts 10
 - 🟢 **绿色点**: 文章点击位置
 - 🔵 **蓝色框**: 公众号名称 OCR 识别区域
 - 🟠 **橙色框**: 文章标题 OCR 识别区域
-- 🟣 **紫色点**: 留言按钮位置
-- 🔵 **青色点**: 留言输入框位置
-- 🟡 **黄色点**: 发送按钮位置
+
+**注意**：留言按钮、输入框和发送按钮已改用图片识别自动定位，无需手动校准坐标。
 
 如需单独验证校准配置，运行 `uv run python -m wechat_gzh.auto_comment -v`
 
@@ -156,6 +157,7 @@ TIMING = {
 
 ```
 wechat_gzh/                      # 项目根目录
+├── web_app.py                   # Web 界面主程序（推荐）
 ├── wechat_gzh/                  # Python 包
 │   ├── __init__.py              # 模块入口
 │   ├── api.py                   # 微信公众号 API 客户端
@@ -166,31 +168,78 @@ wechat_gzh/                      # 项目根目录
 │   └── automation/              # GUI 自动化子模块
 │       ├── __init__.py
 │       ├── navigator.py         # 导航操作
-│       ├── commenter.py         # 留言操作
+│       ├── commenter.py         # 留言操作（图片识别）
 │       ├── ocr.py               # OCR 识别
 │       ├── calibration.py       # 校准配置管理
 │       ├── visualizer.py        # 校准可视化
 │       └── utils.py             # 工具函数
 ├── assets/                      # 图像识别资源
 │   ├── mac/                     # macOS 平台资源
-│   │   ├── comment_button.png   # 留言按钮图片
-│   │   ├── comment_input.png    # 输入框图片
-│   │   └── send_button.png      # 发送按钮图片
-│   ├── win/                     # Windows 平台资源（需手动截图）
-│   └── README.md                # 资源说明
+│   │   ├── comment_button*.png  # 留言按钮图片（用于图片识别）
+│   │   ├── comment_input*.png   # 输入框图片（用于图片识别）
+│   │   └── send_button.png      # 发送按钮图片（用于图片识别）
+│   └── win/                     # Windows 平台资源
 ├── config/                      # 配置文件目录
-│   ├── calibration.json         # 校准配置（自动保存）
-│   ├── comment_history_*.json  # 留言历史记录（按日期）
+│   ├── calibration.json         # 校准配置（导航和 OCR）
 │   └── task_prompt.json         # LLM 任务提示词配置
-├── logs/                        # 日志目录（自动创建）
-│   ├── auto_comment_*.log       # 运行日志
-│   └── calibration_check_*.png  # 校准验证截图（可选）
-├── .env                         # 环境变量配置（需自行创建，不提交）
-├── .gitignore                   # Git 忽略文件
+├── scripts/                     # 实用脚本
 ├── pyproject.toml               # 项目配置
 ├── uv.lock                      # 依赖锁定文件
 └── README.md                    # 本文件
 ```
+
+## 打包分发
+
+如果需要将应用打包成独立可执行文件分发给没有代码基础的用户，可以使用以下方式：
+
+### 一键打包
+
+```bash
+# macOS/Linux
+chmod +x build.sh
+./build.sh
+
+# Windows
+build.bat
+```
+
+### 手动打包
+
+```bash
+# 同步依赖（包括 pyinstaller）
+uv sync
+
+# 运行打包脚本
+uv run python build.py
+```
+
+### 打包输出
+
+打包完成后，`dist/` 目录包含：
+
+```
+dist/
+├── 微信公众号评论机器人      # 主程序（Windows 为 .exe）
+├── config/                   # 配置文件目录
+│   ├── calibration.json     # 坐标校准配置
+│   ├── task_prompt.json     # AI 提示词配置
+│   └── comment_history.json # 评论历史记录
+├── logs/                     # 日志目录
+├── 启动.command / 启动.bat   # 启动脚本
+└── 使用说明.md               # 用户使用说明
+```
+
+### 分发注意事项
+
+打包后的应用**不包含 Ollama**，用户需要自行安装：
+
+1. 安装 Ollama: https://ollama.com
+2. 拉取模型: `ollama pull qwen2.5:3b`
+3. 启动服务: `ollama serve`
+
+然后双击应用即可使用。
+
+---
 
 ## 注意事项
 

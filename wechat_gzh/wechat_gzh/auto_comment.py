@@ -17,6 +17,7 @@ import argparse
 import os
 import signal
 import sys
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -402,8 +403,10 @@ class AutoCommentBot:
             similarity = calculate_similarity(before_click_img, after_click_img)
             self.logger.info(f"  文章点击前后相似度: {similarity:.4f}")
             
-            if similarity >= 0.99:
-                self.logger.warning(f"  ⚠ 文章点击失败（相似度 {similarity:.4f} >= 0.99），跳过")
+            similarity_threshold = 0.98
+
+            if similarity > similarity_threshold:
+                self.logger.warning(f"  ⚠ 文章点击失败（相似度 {similarity:.4f} >= {similarity_threshold:.2f}），跳过")
                 result["skipped"] = True
                 result["error"] = "点击文章失败(画面无变化)"
                 return result
@@ -568,8 +571,12 @@ class AutoCommentBot:
             time.sleep(1)
         
         # 安装优雅退出的信号处理器（主循环中 Ctrl+C 会等待当前操作完成）
-        install_graceful_handler()
-        print("提示：主循环已启动，Ctrl+C 将在当前操作完成后安全退出")
+        # 只在主线程中设置信号处理器
+        if threading.current_thread() is threading.main_thread():
+            install_graceful_handler()
+            print("提示：主循环已启动，Ctrl+C 将在当前操作完成后安全退出")
+        else:
+            self.logger.info("在后台线程中运行，信号处理器已禁用（使用 UI 停止按钮来停止）")
         
         # 状态变量
         prev_account_name = None  # 上一次处理的公众号名称
@@ -834,11 +841,6 @@ def main():
     
     
     try:
-        # 截取按钮图片模式
-        # if args.calibrate_images:
-        #     # 功能已移除
-        #     pass
-        
         bot = AutoCommentBot(
             verify_only=args.verify,
             enable_debug_screenshot=args.debug_screenshot

@@ -5,8 +5,13 @@ __pycache__/
 *.so
 .Python
 *.egg-info/
+
+# PyInstaller
 dist/
 build/
+# 保留项目的 spec 文件
+# *.spec
+!WeChatAutoComment.spec
 
 # Virtual Environment
 .venv/

@@ -1,7 +1,7 @@
 [project]
 name = "wechat-gzh"
 version = "0.1.0"
-description = "微信公众号用户信息获取工具"
+description = "微信公众号自动化工具 - 自动留言和用户信息获取"
 requires-python = ">=3.8"
 dependencies = [
     "requests>=2.31.0",
@@ -14,7 +14,6 @@ dependencies = [
     "cnstd>=1.2.3",
     "onnxruntime>=1.16.0",
     "openai>=1.0.0",
-    "pyinstaller>=6.18.0",
     "nicegui>=2.24.2",
 ]
 
@@ -24,4 +23,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["wechat_gzh"]
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.18.0",
+]
 

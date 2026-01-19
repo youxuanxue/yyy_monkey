@@ -4,9 +4,7 @@ import sys
 import threading
 import queue
 import json
-import time
-from pathlib import Path
-from nicegui import ui, app
+from nicegui import ui
 
 # 确保能找到模块
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -50,6 +48,11 @@ class WebApp:
         self.is_running = False
         self.bot_thread = None
         self.log_queue = queue.Queue()
+        self.notify_queue = queue.Queue()  # 用于线程安全的通知
+        
+        # 按钮状态绑定变量
+        self.start_enabled = True
+        self.stop_enabled = False
         
         # UI 元素引用 (在 build_ui 中初始化)
         self.log_view = None
@@ -70,17 +73,24 @@ class WebApp:
         self._setup_logging()
 
     def _setup_logging(self):
-        logger = logging.getLogger("wechat-gzh")
-        # 清除旧的 handlers 避免重复
-        for h in logger.handlers:
-            if isinstance(h, QueueHandler):
-                logger.removeHandler(h)
+        # 配置根 logger，这样所有子 logger 的日志都会被捕获
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.INFO)
         
+        # 清除已有的 QueueHandler 避免重复
+        for h in root_logger.handlers[:]:
+            if isinstance(h, QueueHandler):
+                root_logger.removeHandler(h)
+        
+        # 添加队列处理器到根 logger
         handler = QueueHandler(self.log_queue)
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S')
         handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        logger.setLevel(logging.INFO)
+        root_logger.addHandler(handler)
+        
+        # 同时配置 wechat-gzh logger（保持兼容）
+        app_logger = logging.getLogger("wechat-gzh")
+        app_logger.setLevel(logging.INFO)
         
         # 重定向 stdout 到 logger，以便捕获 print 输出
         # 注意：这会影响所有 print，包括 nicegui 自己的，可能导致递归，需小心
@@ -107,7 +117,6 @@ class WebApp:
             # 扁平化数据以便绑定
             self._fill_calib_dict("navigator", data.navigator)
             self._fill_calib_dict("ocr", data.ocr)
-            self._fill_calib_dict("commenter", data.commenter)
 
     def _fill_calib_dict(self, section, obj):
         for field in dir(obj):
@@ -161,8 +170,17 @@ class WebApp:
         if self.is_running: return
         
         self.is_running = True
-        self._update_ui_state()
-        self.log_view.push("=== 任务启动 ===")
+        
+        # 更新按钮状态（通过绑定变量）
+        self.start_enabled = False
+        self.stop_enabled = True
+        
+        if self.status_label:
+            self.status_label.text = "状态: 运行中 🟢"
+            self.status_label.classes(replace="text-lg font-bold text-green-500")
+        
+        if self.log_view:
+            self.log_view.push("=== 任务启动 ===")
         
         interrupt_handler.reset()
         
@@ -171,7 +189,8 @@ class WebApp:
 
     def stop_bot(self):
         if self.is_running:
-            self.log_view.push("正在停止... 请等待当前操作完成")
+            if self.log_view:
+                self.log_view.push("正在停止... 请等待当前操作完成")
             interrupt_handler.set_interrupted()
 
     def verify_calibration(self):
@@ -184,9 +203,10 @@ class WebApp:
                 logging.info("正在生成校验截图...")
                 bot = AutoCommentBot(verify_only=True)
                 bot.run_verify_only()
-                ui.notify("截图已生成，请查看 logs 目录", type="positive")
+                self._safe_notify("截图已生成，请查看 logs 目录", "positive")
             except Exception as e:
                 logging.error(f"校验失败: {e}")
+                self._safe_notify(f"校验失败: {e}", "negative")
 
         threading.Thread(target=_verify, daemon=True).start()
 
@@ -199,8 +219,8 @@ class WebApp:
             logging.error(f"运行出错: {e}")
         finally:
             self.is_running = False
-            # 必须在主线程更新 UI，或者使用 run_javascript，或者依赖 timer 检查状态
-            # 这里我们只设置标志位，由 timer 更新 UI
+            # 在结束时手动更新一次 UI 状态
+            self._update_ui_state()
 
     def _process_log_queue(self):
         # 处理日志
@@ -209,28 +229,36 @@ class WebApp:
             if self.log_view:
                 self.log_view.push(msg)
         
-        # 检查运行状态并更新 UI (轮询)
-        # 注意：threading.Thread 结束时我们无法直接回调 UI，所以用轮询检查 is_running 标志的变化
-        # 实际生产中可以使用 nicegui 的 app.storage 或其他状态管理，这里简单起见
-        if self.btn_start and self.btn_stop:
-            if self.is_running:
-                if self.btn_start.enabled:
-                    self._update_ui_state()
-            else:
-                if not self.btn_start.enabled:
-                    self._update_ui_state()
+        # 处理通知队列（线程安全的 UI 更新）
+        while not self.notify_queue.empty():
+            notify_item = self.notify_queue.get()
+            message = notify_item.get("message", "")
+            notify_type = notify_item.get("type", "info")
+            ui.notify(message, type=notify_type)
+    
+    def _safe_notify(self, message: str, notify_type: str = "info"):
+        """线程安全的通知方法，将通知放入队列，由主线程处理"""
+        self.notify_queue.put({"message": message, "type": notify_type})
 
     def _update_ui_state(self):
-        if self.is_running:
-            self.btn_start.disable()
-            self.btn_stop.enable()
-            self.status_label.text = "状态: 运行中 🟢"
-            self.status_label.classes("text-green-500")
-        else:
-            self.btn_start.enable()
-            self.btn_stop.disable()
-            self.status_label.text = "状态: 就绪 ⚪"
-            self.status_label.classes("text-grey-500")
+        # 更新 UI 状态（通过绑定变量控制按钮）
+        try:
+            if self.is_running:
+                # 运行中：禁用启动按钮，启用停止按钮
+                self.start_enabled = False
+                self.stop_enabled = True
+                if self.status_label:
+                    self.status_label.text = "状态: 运行中 🟢"
+                    self.status_label.classes(replace="text-lg font-bold text-green-500")
+            else:
+                # 已停止：启用启动按钮，禁用停止按钮
+                self.start_enabled = True
+                self.stop_enabled = False
+                if self.status_label:
+                    self.status_label.text = "状态: 就绪 ⚪"
+                    self.status_label.classes(replace="text-lg font-bold text-grey-500")
+        except Exception as e:
+            pass  # 静默失败，避免日志刷屏
 
     def build_ui(self):
         with ui.header().classes(replace='row items-center') as header:
@@ -247,8 +275,8 @@ class WebApp:
                 with ui.row().classes('w-full items-center gap-4 mb-4'):
                     with ui.card():
                         with ui.row().classes('items-center'):
-                            self.btn_start = ui.button('启动自动评论', on_click=self.start_bot, icon='play_arrow').props('color=primary')
-                            self.btn_stop = ui.button('停止运行', on_click=self.stop_bot, icon='stop').props('color=negative').disable()
+                            self.btn_start = ui.button('启动自动评论', on_click=self.start_bot, icon='play_arrow').props('color=primary').bind_enabled_from(self, 'start_enabled')
+                            self.btn_stop = ui.button('停止运行', on_click=self.stop_bot, icon='stop').props('color=negative').bind_enabled_from(self, 'stop_enabled')
                             self.btn_verify = ui.button('验证校准 (生成截图)', on_click=self.verify_calibration, icon='screenshot').props('outline')
                     
                     self.status_label = ui.label('状态: 就绪 ⚪').classes('text-lg font-bold text-grey-500')
@@ -294,16 +322,6 @@ class WebApp:
                                 ("article_title_width", "标题宽"),
                                 ("article_title_height", "标题高"),
                             ])
-                            
-                            # Commenter
-                            self._build_calib_section("留言器 (Commenter)", "commenter", [
-                                ("comment_button_x", "留言按钮 X"),
-                                ("comment_button_y", "留言按钮 Y"),
-                                ("comment_input_x", "输入框 X"),
-                                ("comment_input_y", "输入框 Y"),
-                                ("send_button_x", "发送按钮 X"),
-                                ("send_button_y", "发送按钮 Y"),
-                            ])
 
                     ui.button('保存所有配置', on_click=self.save_settings, icon='save').classes('w-full').props('color=secondary')
 
@@ -332,7 +350,7 @@ def main():
     app_instance.build_ui()
     # native=True 会尝试打开为独立窗口模式 (类似 Electron 体验)，如果失败会退化为浏览器
     # port=native 自动选择端口
-    ui.run(title="微信公众号自动评论机器人", native=True, reload=False, port=8080)
+    ui.run(title="微信公众号自动评论机器人", native=False, reload=False, port=8080)
 
 if __name__ in {"__main__", "__mp_main__"}:
     main()

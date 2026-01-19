@@ -88,7 +88,7 @@ class Commenter:
             found_btns = [img for img in self.COMMENT_BUTTON_IMAGES if (self.asset_dir / img).exists()]
             print(f"    ✓ 图片资源已就绪: {self.asset_dir}")
             print(f"    ✓ 写留言按钮图片: {found_btns}")
-    
+
     def _locate(self, image_name: str, region: Optional[Tuple[int, int, int, int]] = None) -> Optional[Tuple[int, int]]:
         """
         在屏幕上查找图片，返回中心坐标

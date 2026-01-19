@@ -70,7 +70,26 @@ uv run python -m wechat_gzh.get_users
    - `comment_input.png` (留言输入框)
    - `send_button.png` (发送按钮)
 
-#### 使用方法
+## 使用方法
+
+### 图形化界面 (推荐)
+
+我们提供了一个基于 Web 的现代化图形界面 (NiceGUI)，方便操作和监控。
+
+```bash
+uv run python wechat_gzh/web_app.py
+```
+
+启动后，浏览器会自动打开 `http://localhost:8080`。你可以在界面上：
+- 启动/停止自动留言任务
+- 实时查看运行日志
+- 修改 AI 提示词 (Prompt)
+- 调整和保存坐标校准配置
+- 生成校准验证截图
+
+### 命令行运行
+
+如果你更喜欢命令行：
 
 ```bash
 # 正常运行（自动加载校准配置，如不存在则初始化默认值）

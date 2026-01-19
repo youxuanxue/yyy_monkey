@@ -71,10 +71,10 @@ LOG_DIR = os.path.join(PROJECT_DIR, "logs")
 CONFIG_DIR = os.path.join(PROJECT_DIR, "config")
 
 # 历史记录文件路径
-# 文件名包含日期，每天单独一个文件
+# 不再包含日期，所有历史记录合并到一个文件
 HISTORY_FILE = os.path.join(
     CONFIG_DIR, 
-    f"comment_history_{datetime.now().strftime('%Y-%m-%d')}.json"
+    "comment_history.json"
 )
 
 # 确保必要的目录存在

@@ -46,6 +46,11 @@ def build():
         "--hidden-import", "pyautogui",
         "--hidden-import", "PIL",
         "--hidden-import", "tiktoken",
+        "--hidden-import", "tkinter",
+        "--hidden-import", "tkinter.ttk",
+        "--hidden-import", "tkinter.messagebox",
+        "--hidden-import", "tkinter.scrolledtext",
+        "--add-binary", "/Users/xuejiao/.local/share/uv/python/cpython-3.13.0-macos-aarch64-none/lib/python3.13/tkinter:tkinter",
         entry_point
     ]
     

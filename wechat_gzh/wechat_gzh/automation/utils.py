@@ -9,9 +9,11 @@ import random
 import re
 import time
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
+import numpy as np
 import pyautogui
+from PIL import Image
 
 # 配置 pyautogui
 pyautogui.FAILSAFE = True  # 移动鼠标到左上角可以中断程序
@@ -157,6 +159,42 @@ def normalize_title(title: str) -> str:
     return re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9]', '', title)
 
 
+def calculate_similarity(img1: Union[np.ndarray, Image.Image], img2: Union[np.ndarray, Image.Image]) -> float:
+    """
+    计算两张图片的相似度（0-1）
+    
+    Args:
+        img1: 图片1 (PIL Image 或 numpy array)
+        img2: 图片2 (PIL Image 或 numpy array)
+        
+    Returns:
+        相似度（0-1），1.0 表示完全相同
+    """
+    if img1 is None or img2 is None:
+        return 0.0
+        
+    # 转换为 numpy array
+    if isinstance(img1, Image.Image):
+        arr1 = np.array(img1)
+    else:
+        arr1 = img1
+        
+    if isinstance(img2, Image.Image):
+        arr2 = np.array(img2)
+    else:
+        arr2 = img2
+    
+    if arr1.shape != arr2.shape:
+        return 0.0
+        
+    # 计算差异
+    diff = np.abs(arr1.astype(float) - arr2.astype(float))
+    normalized_diff = diff / 255.0
+    similarity = 1.0 - np.mean(normalized_diff)
+    
+    return similarity
+
+
 class HistoryManager:
     """历史记录管理器"""
     
@@ -202,9 +240,22 @@ class HistoryManager:
             如果已处理返回 True，否则返回 False
         """
         if account_name in self.history:
-            saved_title = self.history[account_name].get("article_title", "")
-            # 使用标准化后的标题进行比较（去除标点符号）
-            return normalize_title(saved_title) == normalize_title(article_title)
+            account_data = self.history[account_name]
+            
+            # 兼容旧格式：如果 account_data 直接包含 article_title
+            if "article_title" in account_data:
+                saved_title = account_data.get("article_title", "")
+                if normalize_title(saved_title) == normalize_title(article_title):
+                    return True
+            
+            # 新格式：article_list
+            if "article_list" in account_data:
+                normalized_target = normalize_title(article_title)
+                for item in account_data["article_list"]:
+                    saved_title = item.get("article_title", "")
+                    if normalize_title(saved_title) == normalized_target:
+                        return True
+                        
         return False
     
     def is_account_processed(self, account_name: str) -> bool:
@@ -217,6 +268,7 @@ class HistoryManager:
         Returns:
             如果公众号已在历史记录中返回 True，否则返回 False
         """
+        # 只要在历史记录中有 key，就算处理过（无论处理了多少文章）
         return account_name in self.history
     
     def get_processed_accounts(self) -> set:
@@ -247,11 +299,48 @@ class HistoryManager:
             return
         if not article_title or not article_title.strip():
             return
-        
-        self.history[account_name] = {
+            
+        # 准备新记录项
+        new_record = {
             "article_title": article_title,
             "processed_time": datetime.now().isoformat(),
         }
+        
+        if account_name not in self.history:
+            # 新公众号
+            self.history[account_name] = {
+                "article_list": [new_record]
+            }
+        else:
+            # 已存在的公众号
+            account_data = self.history[account_name]
+            
+            # 兼容旧格式迁移：如果有 article_title，将其移入 article_list
+            if "article_title" in account_data:
+                old_record = {
+                    "article_title": account_data.pop("article_title"),
+                    "processed_time": account_data.pop("processed_time", "")
+                }
+                if "article_list" not in account_data:
+                    account_data["article_list"] = []
+                account_data["article_list"].append(old_record)
+            
+            # 确保 article_list 存在
+            if "article_list" not in account_data:
+                account_data["article_list"] = []
+            
+            # 检查是否重复（避免重复添加）
+            normalized_target = normalize_title(article_title)
+            exists = False
+            for item in account_data["article_list"]:
+                if normalize_title(item.get("article_title", "")) == normalized_target:
+                    exists = True
+                    # 更新时间戳？或者保留最早的？这里选择不重复添加
+                    break
+            
+            if not exists:
+                account_data["article_list"].append(new_record)
+        
         self.save_history()
     
     def get_summary(self) -> Dict:

@@ -8,7 +8,7 @@ from typing import Tuple, Optional, TYPE_CHECKING
 
 import pyautogui
 
-from .utils import random_sleep
+from .utils import random_sleep, calculate_similarity
 
 if TYPE_CHECKING:
     from .calibration import NavigatorCalibration
@@ -227,13 +227,6 @@ class Navigator:
             h, w = img_array.shape[:2]
             return img_array[h//3:2*h//3, w//3:2*w//3]
         
-        def calculate_similarity(img1: np.ndarray, img2: np.ndarray) -> float:
-            """计算两张图片的相似度（0-1）"""
-            if img1.shape != img2.shape:
-                return 0.0
-            diff = np.abs(img1.astype(float) - img2.astype(float))
-            normalized_diff = diff / 255.0
-            return 1.0 - np.mean(normalized_diff)
         
         scroll_count = 0
         prev_screenshot = None
@@ -313,15 +306,6 @@ class Navigator:
         def capture_full_screen():
             """截取全屏用于 OCR"""
             return pyautogui.screenshot()
-        
-        def calculate_similarity(img1: np.ndarray, img2: np.ndarray) -> float:
-            """计算两张图片的相似度（0-1）"""
-            if img1.shape != img2.shape:
-                return 0.0
-            diff = np.abs(img1.astype(float) - img2.astype(float))
-            normalized_diff = diff / 255.0
-            similarity = 1.0 - np.mean(normalized_diff)
-            return similarity
         
         scroll_count = 0
         prev_screenshot = None

@@ -22,13 +22,17 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
+import pyautogui
+from PIL import Image
+
 from .config import COMMENT_TEXT, CONFIG_DIR, HISTORY_FILE, LOG_DIR, TIMING
 from .automation.navigator import Navigator
 from .automation.commenter import Commenter
 from .automation.ocr import OCRReader
 from .automation.calibration import CalibrationManager, CalibrationData
 from .automation.visualizer import CalibrationVisualizer
-from .automation.utils import HistoryManager, setup_logger, random_sleep, interrupt_handler
+from .automation.utils import HistoryManager, setup_logger, random_sleep, interrupt_handler, calculate_similarity
 from .llm_client import LLMCommentGenerator
 
 
@@ -166,11 +170,10 @@ class AutoCommentBot:
         """
         # 倒计时
         if countdown > 0:
-            print(f"\n{countdown} 秒后截图，请确保微信窗口可见...")
+            self.logger.info(f"{countdown} 秒后截图，请确保微信窗口可见...")
             for i in range(countdown, 0, -1):
-                print(f"  {i}...", end=" ", flush=True)
+                self.logger.info(f"  {i}...")
                 time.sleep(1)
-            print()
         
         print("\n正在生成校准验证截图...")
         
@@ -184,14 +187,13 @@ class AutoCommentBot:
         # 生成标注截图
         output_path = self.visualizer.capture_and_annotate(data)
         
-        print(f"✓ 校准验证截图已保存: {output_path}")
-        print()
-        print("请检查截图中的标注位置是否正确：")
-        print("  - 红色点 (1-3): 公众号列表中的前3个位置")
-        print("  - 绿色点: 文章点击位置")
-        print("  - 蓝色框: 公众号名称 OCR 识别区域")
-        print("  - 橙色框: 文章标题 OCR 识别区域")
-        print()
+
+        self.logger.info(f"✓ 校准验证截图已保存: {output_path}")
+        self.logger.info("请检查截图中的标注位置是否正确：")
+        self.logger.info("  - 红色点 (1-3): 公众号列表中的前3个位置")
+        self.logger.info("  - 绿色点: 文章点击位置")
+        self.logger.info("  - 蓝色框: 公众号名称 OCR 识别区域")
+        self.logger.info("  - 橙色框: 文章标题 OCR 识别区域")
         
         return output_path
     
@@ -224,7 +226,8 @@ class AutoCommentBot:
         index: int, 
         mark_position: tuple = None,
         mark_regions: list = None,
-        enable_debug_screenshot: bool = False
+        enable_debug_screenshot: bool = False,
+        base_image: Image.Image = None
     ) -> Optional[str]:
         """
         保存调试截图，可选在截图上标注点击位置和区域
@@ -235,6 +238,7 @@ class AutoCommentBot:
             mark_position: 可选，要标注的点击位置 (x, y) 物理像素坐标
             mark_regions: 可选，要标注的区域列表 [(x, y, w, h, color, label), ...]
             enable_debug_screenshot: 是否启用调试截图（默认 False，需要显式传入 True 才保存）
+            base_image: 可选，基础图片（如果不传则重新截图）
             
         Returns:
             截图保存路径，如果未启用则返回 None
@@ -242,15 +246,18 @@ class AutoCommentBot:
         # 只有显式传入 enable_debug_screenshot=True 才保存截图
         if not enable_debug_screenshot:
             return None
-        import pyautogui
         from PIL import ImageDraw, ImageFont
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f"debug_{index+1:02d}_{step_name}_{timestamp}.png"
         filepath = os.path.join(LOG_DIR, filename)
         
-        # 截取整个屏幕
-        screenshot = pyautogui.screenshot()
+        # 使用传入的基础图片或截取整个屏幕
+        if base_image:
+            screenshot = base_image.copy()
+        else:
+            screenshot = pyautogui.screenshot()
+            
         draw = ImageDraw.Draw(screenshot)
         line_width = 3
         
@@ -373,10 +380,12 @@ class AutoCommentBot:
             article_click_y = self.navigator.article_area_y
             
             # 截图：点击文章前（标注点击位置）
+            before_click_img = pyautogui.screenshot()
             self._save_debug_screenshot(
                 "3_before_click_article", index, 
                 mark_position=(article_click_x, article_click_y),
-                enable_debug_screenshot=self.enable_debug_screenshot
+                enable_debug_screenshot=self.enable_debug_screenshot,
+                base_image=before_click_img
             )
             self.logger.info(f"  文章点击屏幕坐标: ({article_click_x}, {article_click_y})")
             
@@ -386,10 +395,25 @@ class AutoCommentBot:
             time.sleep(TIMING["article_load_wait"])
             
             # 截图：点击文章后（标注 OCR 文章标题区域）
+            # 同时用于比较点击是否生效
+            after_click_img = pyautogui.screenshot()
+            
+            # 检查点击是否生效（对比点击前后的截图）
+            similarity = calculate_similarity(before_click_img, after_click_img)
+            self.logger.info(f"  文章点击前后相似度: {similarity:.4f}")
+            
+            if similarity >= 0.99:
+                self.logger.warning(f"  ⚠ 文章点击失败（相似度 {similarity:.4f} >= 0.99），跳过")
+                result["skipped"] = True
+                result["error"] = "点击文章失败(画面无变化)"
+                return result
+            
+            # 截图：点击文章后（标注 OCR 文章标题区域）
             self._save_debug_screenshot(
                 "4_after_click_article", index,
                 mark_regions=[ocr_title_region],
-                enable_debug_screenshot=self.enable_debug_screenshot
+                enable_debug_screenshot=self.enable_debug_screenshot,
+                base_image=after_click_img
             )
             
             # 先滚动到文章顶部，确保能看到标题
@@ -403,14 +427,12 @@ class AutoCommentBot:
                 result["article_title"] = article_title
                 self.logger.info(f"  识别到文章: 【{article_title}】")
             else:
-                # 如果识别失败，不退出，而是跳过该文章
+                # 如果识别失败，关闭文章窗口返回列表
                 self.logger.warning("  ⚠ 无法识别文章标题，跳过此文章")
                 result["skipped"] = True
                 result["error"] = "无法识别文章标题"    
-                # 记录到历史，防止无限重复（使用空标题或特殊标记）
-                # 这里我们记录一个带时间戳的占位符，或者直接不记录，完全跳过
-                # 如果不记录，下次还会尝试。如果一直失败，会一直循环。
-                # 所以最好是跳过并继续下一个。
+                self.navigator.go_back()
+                time.sleep(0.5)
                 return result
             
             # 检查是否已处理过此公众号的此文章
@@ -434,11 +456,16 @@ class AutoCommentBot:
             comment_text = None
             if article_content and self.llm.is_available():
                 self.logger.info("正在使用 LLM 生成评论...")
-                # 不再传入固定的 suffix，让 AI 在 prompt 指导下自然融入回关意图
-                comment_text = self.llm.generate_comment(
-                    article_content=article_content,
-                    suffix=None  # 不强制添加固定后缀，由 AI 自然生成
-                )
+                if self.commenter.platform == "win":
+                    comment_text = self.llm.generate_comment(
+                        article_title=article_title,
+                        suffix=None
+                    )
+                else:
+                    comment_text = self.llm.generate_comment(
+                        article_content=article_content,
+                        suffix=None
+                    )
             
             # 如果 LLM 生成失败，使用默认评论
             if not comment_text:
@@ -535,11 +562,10 @@ class AutoCommentBot:
         # input("\n确认微信显示公众号列表后，按 Enter 开始...")
         
         # 等待 5 秒，让用户切回到微信主界面
-        print("\n5 秒后开始，请切换到微信窗口...")
+        self.logger.info("5 秒后开始，请切换到微信窗口...")
         for i in range(5, 0, -1):
-            print(f"  {i}...", end=" ", flush=True)
+            self.logger.info(f"  {i}...")
             time.sleep(1)
-        print("\n")
         
         # 安装优雅退出的信号处理器（主循环中 Ctrl+C 会等待当前操作完成）
         install_graceful_handler()

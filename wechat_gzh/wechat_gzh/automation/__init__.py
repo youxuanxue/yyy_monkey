@@ -5,6 +5,7 @@
 from .navigator import Navigator
 from .commenter import Commenter
 from .ocr import OCRReader
+from .auto_follow import AutoFollower
 from .calibration import (
     CalibrationManager,
     CalibrationData,
@@ -25,6 +26,7 @@ __all__ = [
     "Navigator",
     "Commenter",
     "OCRReader",
+    "AutoFollower",
     "CalibrationManager",
     "CalibrationData",
     "NavigatorCalibration",

@@ -25,7 +25,12 @@
     "article_title_y": 90,
     "article_title_width": 1000,
     "article_title_height": 50,
-    "_article_title": "文章标题区域：(x, y) 是左上角，width/height 是宽高"
+    "_article_title": "文章标题区域：(x, y) 是左上角，width/height 是宽高",
+    "searched_gongzhonghao_x": 800,
+    "searched_gongzhonghao_y": 150,
+    "searched_gongzhonghao_width": 1500,
+    "searched_gongzhonghao_height": 100,
+    "_searched_gongzhonghao": "搜一搜下面的第一张公众号卡片的位置：(x, y) 是左上角，width/height 是宽高"
   },
   "calibrated": true
 }

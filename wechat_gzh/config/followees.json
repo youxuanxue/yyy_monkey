@@ -1,255 +1,962 @@
-{
-  "base_resp": {
-    "ret": 0,
-    "err_msg": ""
+[
+  {
+    "user_name": "巧燕[爱心]",
+    "user_openid": "o1ridv77Z8PID-BoQp2eQwgkA01Y",
+    "identity_type": 0,
+    "identity_open_id": "B-X1Gyq4RYXGLjh1XOswhw",
+    "followed": false,
+    "handled": true
   },
-  "group_info": {
-    "group_info_list": [
-      {
-        "group_name": "未分组",
-        "group_cnt": 109,
-        "group_create_time": 1487385141,
-        "group_id": 0
-      },
-      {
-        "group_name": "星标组",
-        "group_cnt": 0,
-        "group_create_time": 1487385141,
-        "group_id": 2
-      },
-      {
-        "group_name": "family-hu",
-        "group_cnt": 7,
-        "group_create_time": 1489818048,
-        "group_id": 100
-      },
-      {
-        "group_name": "恒大名都",
-        "group_cnt": 2,
-        "group_create_time": 1560775430,
-        "group_id": 101
-      },
-      {
-        "group_name": "科大",
-        "group_cnt": 1,
-        "group_create_time": 1567948145,
-        "group_id": 102
-      },
-      {
-        "group_name": "中科院",
-        "group_cnt": 1,
-        "group_create_time": 1567948156,
-        "group_id": 103
-      },
-      {
-        "group_name": "屏蔽组",
-        "group_cnt": 0,
-        "group_id": 1
-      }
-    ]
+  {
+    "user_name": "老马识途4358",
+    "user_openid": "o1ridv4Er2YntI1nT7lpZhxagKlQ",
+    "identity_type": 1,
+    "identity_open_id": "5oJLPyd60Wny04adpzt8sQ",
+    "followed": true,
+    "handled": true
   },
-  "user_list": {
-    "user_info_list": [
-      {
-        "user_openid": "o1ridv77Z8PID-BoQp2eQwgkA01Y",
-        "user_name": "巧燕[爱心]",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768359450,
-        "user_head_img": "https://wx.qlogo.cn/mmopen/QnM5bMcic4Z2oTYrdrvNgyh33egf9OZDhfLkN2YJT1zhrCKFH6JvAtQ8JNhc6royia9UfjmME7mVXiad2eKbO3EBW7cALpht6OW/64",
-        "identity_type": 0,
-        "identity_open_id": "B-X1Gyq4RYXGLjh1XOswhw"
-      },
-      {
-        "user_openid": "o1ridv4Er2YntI1nT7lpZhxagKlQ",
-        "user_name": "老马识途4358",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768359076,
-        "user_head_img": "http://wx.qlogo.cn/mmhead/I1YzhXxW8YChicxNxwhJtMiaRvYb1U2MNuddlBu8W5xqgvSSx6YY0RTOosVxlXYNAfibmAoc8CMu1g/64",
-        "identity_type": 1,
-        "identity_open_id": "5oJLPyd60Wny04adpzt8sQ"
-      },
-      {
-        "user_openid": "o1ridv1c-9xu6zgSejhxJ3O0gCyE",
-        "user_name": "影子",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768358812,
-        "user_head_img": "https://wx.qlogo.cn/mmopen/Sl52dX47aXY1lnvHIwgEp7JOd5mU7e3zooxmFaRibuDPar7mljbhTF2oyiaom65ia1z4poAD8Yiby8tpL2eTJYLSwic6PJK1mqJo8AIxkBRYHwuAHmtk6lYpsf9sEIgwNszIV/64",
-        "identity_type": 0,
-        "identity_open_id": "qn45REe5eDA69gstWDV5KA"
-      },
-      {
-        "user_openid": "o1ridv-l4LzjoB3ssBRXBXrXfl3k",
-        "user_name": "丙寅6185",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768357963,
-        "user_head_img": "http://wx.qlogo.cn/mmhead/eytJa9K5jkqEzCibfQdzn4OU8e9o9eJOHpZr2kUVStyM0c0icXicprNH357ibSUcE6GVLdic1jhiccrFM/64",
-        "identity_type": 1,
-        "identity_open_id": "0idfCAyak4QejEpKFiirAw"
-      },
-      {
-        "user_openid": "o1ridv79LZN2l9rAShhStueKvHqg",
-        "user_name": "嘟嘟哒不烦恼",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768357882,
-        "user_head_img": "http://wx.qlogo.cn/mmhead/Szib8ySqErWK0UXcQI1cOs7JhGUcnjibPPFPLPEDiaBM6XaRlhXSibotIdN0IpfckAVoZfMDAq4N9dI/64",
-        "identity_type": 1,
-        "identity_open_id": "RUWcO5hLpiJa0RcZgX0OaA"
-      },
-      {
-        "user_openid": "o1ridv2mYxx-hNAvuICqfdKyr85M",
-        "user_name": "则次之",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768357810,
-        "user_head_img": "http://wx.qlogo.cn/mmhead/GPyw0pGicibl7Myvu7Z16MRbT7w18aE5wVsjic2aA7g2kWbW6P1BtEK7znK3sdXCjo4n0VVA1fXVZ8/64",
-        "identity_type": 1,
-        "identity_open_id": "nxmbpsJNEFVO9bqQX8Wy6w"
-      },
-      {
-        "user_openid": "o1ridv5yhxS7AS1VCt1esXBceKEI",
-        "user_name": "游影水清",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768357719,
-        "user_head_img": "https://wx.qlogo.cn/mmopen/C510uZbKcj87qZkg7hlIVrEMa2puGTnt5QSEbicVxwl3pL0w6BGFksEfe0iaticu4JNh0qf9cibvUYFFOvGVmDibibQgLTOnWzRYnkpVWrPHaCrz9ko15Ox4VkzKxyoRT37Ff1/64",
-        "identity_type": 0,
-        "identity_open_id": "gYYo9HUK9IBB4z7FaoHzKw"
-      },
-      {
-        "user_openid": "o1ridvwS2RBjXqldfwdJ9vTlOpOo",
-        "user_name": "猎奇收容所",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768356857,
-        "user_head_img": "http://wx.qlogo.cn/mmhead/Q3auHgzwzM4Bt4FLaMl2SsazXCIAiazhogzryHZsQYhxkJ33rTb6Vicg/64",
-        "identity_type": 1,
-        "identity_open_id": "YbXip_SZZe05XjXstLtaUQ"
-      },
-      {
-        "user_openid": "o1ridv5H3AmK1rBONzGATvpjPGmU",
-        "user_name": "仁者上宾",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768356377,
-        "user_head_img": "http://wx.qlogo.cn/mmhead/XxT9TiaJ1ibf1FYQ16iapmOqTXtI7hIicdoXdVrzg2WW7dHgLhakHjIvodCh6NDJJaTDOv3lkticiaXv4/64",
-        "identity_type": 1,
-        "identity_open_id": "lZmaYIyaM1Rl-OG3gEVH-g"
-      },
-      {
-        "user_openid": "o1ridv8f5BTV4OewXfdEVqMsCcgI",
-        "user_name": "兴许有故事",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768356071,
-        "user_head_img": "https://wx.qlogo.cn/mmopen/ufRfdSZcVrUF3cnCnYDEjsZ0d7RJrK5OumK4n3D96WBqm4vb96ABtMLq9BlVianGicbBsnqh64KUPib9Ivhlibeq9raSpW63THXvRHia9g9VsXDvPDum2V0Q5PFISCic8fly5S/64",
-        "identity_type": 0,
-        "identity_open_id": "-30ZC_4VOc0VhF6KGL187w"
-      },
-      {
-        "user_openid": "o1ridvx45K8N5F372O0oe0P8pa_M",
-        "user_name": "前进985",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768355674,
-        "user_head_img": "http://wx.qlogo.cn/mmhead/nibxxlib1VaPfqLCh20TtQCibEqttQPUNZzxgbl5wnYJgvWN5dnqjWz2ZyeTS232Lrlomz0OJTgiap4/64",
-        "identity_type": 1,
-        "identity_open_id": "WOtGAftnFKDMkdmlNQQEWw"
-      },
-      {
-        "user_openid": "o1ridvxwYp8VwUntZTZNjFba0bP0",
-        "user_name": "李导员说生涯规划",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768355326,
-        "user_head_img": "http://wx.qlogo.cn/mmhead/EVPtJJ9TsHzKqib0HZdtpGOngm9ZC3TusccW1JtZfVEGV8uicyekHVgDmrXZInCdwZzyfOGpbDT9A/64",
-        "identity_type": 1,
-        "identity_open_id": "_ZCvP6m0qVDLrDCwu2Iy7g"
-      },
-      {
-        "user_openid": "o1ridv0qEOIXKq0gYS0H-DxqtcUM",
-        "user_name": "懿辉John",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768351260,
-        "user_head_img": "https://wx.qlogo.cn/mmopen/E8zPmVsYmBPvjIcxpbJvyaPEeJoJ68Y5MA9Rz4ZRbXpff9oMibJ9CTovgnbf07siclxkCG68F8lXoicZMQ0GZoUT99KJexOMjrSIw4Ajj1uZupTj7jqCxuR6H7yia5ho2CGg/64",
-        "identity_type": 0,
-        "identity_open_id": "t8Z1KgfZixSKQE9Sd7weAQ"
-      },
-      {
-        "user_openid": "o1ridv-Smwtks0eiMc2Y9hB9x9dw",
-        "user_name": "深漂小日记",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768348122,
-        "user_head_img": "http://wx.qlogo.cn/mmhead/VNMic85jx3X50RcoGNnlkZYicGLXzuDmTQtZkTHvhoSEGMmVLUrytpjnsiaGfic2XBIGgYtTdFISNGI/64",
-        "identity_type": 1,
-        "identity_open_id": "Awuxa4vLptvz5cHVABKJtA"
-      },
-      {
-        "user_openid": "o1ridv6B5BPyBlFHJlpfNuatUzkk",
-        "user_name": "梅葆庄园",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768327379,
-        "user_head_img": "http://wx.qlogo.cn/mmhead/ZqDaDiccbgkjwVGUwB2A2WInndyet8dTVUxMuwzKq56HINFPWVGcMJxmhsuOYoy4YQmCOpjDOcGs/64",
-        "identity_type": 1,
-        "identity_open_id": "dpH6lA9gAvFDuysQYT26Tg"
-      },
-      {
-        "user_openid": "o1ridv50suWzqJtNF-yyG_UGY6-o",
-        "user_name": "云间漫步云端",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768318868,
-        "user_head_img": "http://wx.qlogo.cn/mmhead/KetjXWSVppt4iaibMdiaGqOne5XNXbKzVickbtPORYFtXyABWYR2oHTAmuwXQLVGSPrXiaN3HUY6xLPU/64",
-        "identity_type": 1,
-        "identity_open_id": "WxqFZPssW201FZkb7V-jLQ"
-      },
-      {
-        "user_openid": "o1ridv4MLsQ-4LEe17403p8smcaY",
-        "user_name": "诚诚的小世界",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768317430,
-        "user_head_img": "http://wx.qlogo.cn/mmhead/xPKCxELaaj4pPO2CUeiaNFrxJp03eMC6L3ia5VfoVCHdKeJricA8D33BxFkKqmfpuSC5ldqQn5jhbg/64",
-        "identity_type": 1,
-        "identity_open_id": "fdNQ15DPrUuMmVrJ1mS_lw"
-      },
-      {
-        "user_openid": "o1ridv_VouHceHXDtjbxLD5GK0pc",
-        "user_name": "1+1不等于贰",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768315908,
-        "user_head_img": "http://wx.qlogo.cn/mmhead/LwcbhAmMnZDiamwpI8HADg9pZ2ryj6s5ZbSLHk9iacQ0RTShwrn1X3IJPV1sUjibdePTPaO6bbaryw/64",
-        "identity_type": 1,
-        "identity_open_id": "lYbGjE0jdoRtLbuaXMbjYA"
-      },
-      {
-        "user_openid": "o1ridv3xn7uI6RRb50mLmWoWVbLA",
-        "user_name": "英子",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768314036,
-        "user_head_img": "https://wx.qlogo.cn/mmopen/QnM5bMcic4Z1Pqib6PW62fUblrlOk0iac9Jc4cSxZz3uicic27bXHicV1bY2nu3IsyMknTVqIWFxicTc97XpSw21ZghNa2fxqEoRwuhLa7tGNia9IGDOf5BXRee6Yd3tuXHF7jtl/64",
-        "identity_type": 0,
-        "identity_open_id": "pzkJKMRW2Dw2q9YFJPjihg"
-      },
-      {
-        "user_openid": "o1ridv599PzDY-_-1lQjArtRssvs",
-        "user_name": "轻盈生活志",
-        "user_remark": "",
-        "user_group_id": [],
-        "user_create_time": 1768312847,
-        "user_head_img": "http://wx.qlogo.cn/mmhead/ic3ibEjvYaKJxRYRCZpEDBKCRb9ybzQ469lZBW2lloty59E4DBCzbFd4KF5FXwFRgcpOiaxMrlgUEM/64",
-        "identity_type": 1,
-        "identity_open_id": "TDDTYaEGkg1GDnbeL3Vn3g"
-      }
-    ]
+  {
+    "user_name": "影子",
+    "user_openid": "o1ridv1c-9xu6zgSejhxJ3O0gCyE",
+    "identity_type": 0,
+    "identity_open_id": "qn45REe5eDA69gstWDV5KA",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "丙寅6185",
+    "user_openid": "o1ridv-l4LzjoB3ssBRXBXrXfl3k",
+    "identity_type": 1,
+    "identity_open_id": "0idfCAyak4QejEpKFiirAw",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "嘟嘟哒不烦恼",
+    "user_openid": "o1ridv79LZN2l9rAShhStueKvHqg",
+    "identity_type": 1,
+    "identity_open_id": "RUWcO5hLpiJa0RcZgX0OaA",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "则次之",
+    "user_openid": "o1ridv2mYxx-hNAvuICqfdKyr85M",
+    "identity_type": 1,
+    "identity_open_id": "nxmbpsJNEFVO9bqQX8Wy6w",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "游影水清",
+    "user_openid": "o1ridv5yhxS7AS1VCt1esXBceKEI",
+    "identity_type": 0,
+    "identity_open_id": "gYYo9HUK9IBB4z7FaoHzKw",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "猎奇收容所",
+    "user_openid": "o1ridvwS2RBjXqldfwdJ9vTlOpOo",
+    "identity_type": 1,
+    "identity_open_id": "YbXip_SZZe05XjXstLtaUQ",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "仁者上宾",
+    "user_openid": "o1ridv5H3AmK1rBONzGATvpjPGmU",
+    "identity_type": 1,
+    "identity_open_id": "lZmaYIyaM1Rl-OG3gEVH-g",
+    "followed": false,
+    "handled": true
+  },
+  {
+    "user_name": "兴许有故事",
+    "user_openid": "o1ridv8f5BTV4OewXfdEVqMsCcgI",
+    "identity_type": 0,
+    "identity_open_id": "-30ZC_4VOc0VhF6KGL187w",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "前进985",
+    "user_openid": "o1ridvx45K8N5F372O0oe0P8pa_M",
+    "identity_type": 1,
+    "identity_open_id": "WOtGAftnFKDMkdmlNQQEWw",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "李导员说生涯规划",
+    "user_openid": "o1ridvxwYp8VwUntZTZNjFba0bP0",
+    "identity_type": 1,
+    "identity_open_id": "_ZCvP6m0qVDLrDCwu2Iy7g",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "懿辉John",
+    "user_openid": "o1ridv0qEOIXKq0gYS0H-DxqtcUM",
+    "identity_type": 0,
+    "identity_open_id": "t8Z1KgfZixSKQE9Sd7weAQ",
+    "followed": false,
+    "handled": true
+  },
+  {
+    "user_name": "深漂小日记",
+    "user_openid": "o1ridv-Smwtks0eiMc2Y9hB9x9dw",
+    "identity_type": 1,
+    "identity_open_id": "Awuxa4vLptvz5cHVABKJtA",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "梅葆庄园",
+    "user_openid": "o1ridv6B5BPyBlFHJlpfNuatUzkk",
+    "identity_type": 1,
+    "identity_open_id": "dpH6lA9gAvFDuysQYT26Tg",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "云间漫步云端",
+    "user_openid": "o1ridv50suWzqJtNF-yyG_UGY6-o",
+    "identity_type": 1,
+    "identity_open_id": "WxqFZPssW201FZkb7V-jLQ",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "诚诚的小世界",
+    "user_openid": "o1ridv4MLsQ-4LEe17403p8smcaY",
+    "identity_type": 1,
+    "identity_open_id": "fdNQ15DPrUuMmVrJ1mS_lw",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "1+1不等于贰",
+    "user_openid": "o1ridv_VouHceHXDtjbxLD5GK0pc",
+    "identity_type": 1,
+    "identity_open_id": "lYbGjE0jdoRtLbuaXMbjYA",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "英子",
+    "user_openid": "o1ridv3xn7uI6RRb50mLmWoWVbLA",
+    "identity_type": 0,
+    "identity_open_id": "pzkJKMRW2Dw2q9YFJPjihg",
+    "followed": false,
+    "handled": true
+  },
+  {
+    "user_name": "轻盈生活志",
+    "user_openid": "o1ridv599PzDY-_-1lQjArtRssvs",
+    "identity_type": 1,
+    "identity_open_id": "TDDTYaEGkg1GDnbeL3Vn3g",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "慢慢美丽",
+    "user_openid": "o1ridvwv8x7Qxv3DmjvW8_iDzBp4",
+    "identity_type": 0,
+    "identity_open_id": "VR-ECJaE2jOgTiLpsmc4TA",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "奔跑的马驹",
+    "user_openid": "o1ridv0pOG9fFI4qpSwqvPLsalp8",
+    "identity_type": 1,
+    "identity_open_id": "2xktE3ZpbmQiu1LLVrWaNQ",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "郑郑2",
+    "user_openid": "o1ridvxInDko2gbtTUBn1EJc0rd4",
+    "identity_type": 1,
+    "identity_open_id": "h19qhQamQ9nfqLDtwS5hjw",
+    "followed": false,
+    "handled": true
+  },
+  {
+    "user_name": "婚姻废墟上长出的玫瑰",
+    "user_openid": "o1ridv1FchN9WFGnktWOPF0119W8",
+    "identity_type": 1,
+    "identity_open_id": "7MwgoWLePZdqq-nO9QXbdg",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "阿袁",
+    "user_openid": "o1ridv5y_tV9RZ_toqIgWpbG7uRM",
+    "identity_type": 0,
+    "identity_open_id": "9dUwMmISjCCoRaTKqCxwcQ",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "漂水河畔",
+    "user_openid": "o1ridvxG1gwJfneBQrDIQey_khIs",
+    "identity_type": 1,
+    "identity_open_id": "ZRe-mFGfwYJtF70yp52FcA",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "知途序",
+    "user_openid": "o1ridv6pxp8zi9gGEADuDZ-Bxof4",
+    "identity_type": 1,
+    "identity_open_id": "tLOGBDZXLdYPxaqXZKvlZw",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "我也有可乐",
+    "user_openid": "o1ridv0mtKHbF8Osus8TZGGwWnws",
+    "identity_type": 1,
+    "identity_open_id": "iSyRLynrpx52u-U7CnCWBQ",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "su",
+    "user_openid": "o1ridv5JMhbUujSNyKSyO3_AQ5H4",
+    "identity_type": 0,
+    "identity_open_id": "_FWgTq9R1lWJxdCN0peA-Q",
+    "followed": false,
+    "handled": true
+  },
+  {
+    "user_name": "知险而安Plan",
+    "user_openid": "o1ridv1Ivq22dknS-y8IohqW3jmE",
+    "identity_type": 1,
+    "identity_open_id": "nw_7P1UXG6H_VZbhiwBxng",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "沈琳💼",
+    "user_openid": "o1ridv2MJINrL3tUnDer0ZCPRkdw",
+    "identity_type": 0,
+    "identity_open_id": "h-EYLQnEATmYNnVpGcuaOA",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "荣源推荐",
+    "user_openid": "o1ridvx_8I5iaAnfa4LNiOwQ2OmQ",
+    "identity_type": 1,
+    "identity_open_id": "6YPjoqBiDKwMuFhd5h_sRQ",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "微风坡",
+    "user_openid": "o1ridvxfvep0-ZakC6Q42ml9Tu68",
+    "identity_type": 1,
+    "identity_open_id": "LJETuwe1E1rHwFKoPlI3ZA",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "特殊的招财喵",
+    "user_openid": "o1ridv-vqMNWV5Ol9P-aVF99QyYk",
+    "identity_type": 1,
+    "identity_open_id": "CR5Li6v6nuS5gtti2Ux9Nw",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "紫光时空",
+    "user_openid": "o1ridvyC1qqDUY-wg5P9dhNIh8C8",
+    "identity_type": 1,
+    "identity_open_id": "dVgfLyDzOmigTnAQzSlbxw",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "唠嗑情绪小馆",
+    "user_openid": "o1ridv3G_73p8aWnPOQQsBOtsp6M",
+    "identity_type": 1,
+    "identity_open_id": "EHmTfRiqkWbDZIp8K86f1g",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "拾语成笺",
+    "user_openid": "o1ridv9nFEwlvwn237T5SgVPT2bM",
+    "identity_type": 1,
+    "identity_open_id": "_WOBBg9SPOvxY18qWDYLzw",
+    "followed": true,
+    "handled": true
+  },
+  {
+    "user_name": "凡心",
+    "user_openid": "o1ridv8sXifEejAqMgST6P-HcwTY",
+    "identity_type": 0,
+    "identity_open_id": "FVW4myM2VJmI45YOajVs5Q",
+    "followed": false,
+    "handled": true
+  },
+  {
+    "user_name": "重",
+    "user_openid": "o1ridv1HxsLoZ768DP7OwuOjRAF8",
+    "identity_type": 0,
+    "identity_open_id": "eFPM2NQxKdY5CdokI321mw",
+    "followed": false,
+    "handled": true
+  },
+  {
+    "user_name": "Sunny-CNS",
+    "user_openid": "o1ridvwVWfSfNnQp5Z95JjYrBGDY",
+    "identity_type": 1,
+    "identity_open_id": "3K-Z0cCI9ddSxjRQwmGS-A",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "素非",
+    "user_openid": "o1ridv4dEW3ZDFWcKdFfHWq9tHhA",
+    "identity_type": 0,
+    "identity_open_id": "dskjjC0ZHef4fIAJrcFOjA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "玫瑰花语",
+    "user_openid": "o1ridv1yYuJmwiE_4Ha9oyhcY3Xw",
+    "identity_type": 0,
+    "identity_open_id": "4C1TGQaxB220IeSG3R4ifA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "阳光",
+    "user_openid": "o1ridv1BFD4BzEPMBmunv_pKYyN0",
+    "identity_type": 0,
+    "identity_open_id": "f991blF7EDLSE8um6lp4cg",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "七月安禾",
+    "user_openid": "o1ridvzFtvVXYdplHNLBNwEcAUsg",
+    "identity_type": 1,
+    "identity_open_id": "fOPApGfn_X-sSLiWzidPXg",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "资浅体育迷",
+    "user_openid": "o1ridv4x4h3fyTN7x4qsYci397PU",
+    "identity_type": 1,
+    "identity_open_id": "5__SORc2O195y212ahkIBQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "碎碎念的送送",
+    "user_openid": "o1ridv93j9yfWo9zZ0pkk_a_999A",
+    "identity_type": 1,
+    "identity_open_id": "Bt74GXdL-h-uA5ph3pYnug",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "语田田",
+    "user_openid": "o1ridv4goPpCSxRHDOra6OUrzY10",
+    "identity_type": 1,
+    "identity_open_id": "qVfor_FRu-D1F0alc3-TvQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "sola为伴",
+    "user_openid": "o1ridvzPkXDDYB-N1Rhnd8PKhRu4",
+    "identity_type": 1,
+    "identity_open_id": "dChLqAqi--031qGBErUj7w",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "一分三娱乐",
+    "user_openid": "o1ridv2p8ClUDhP0yGdF-Q9lftfo",
+    "identity_type": 1,
+    "identity_open_id": "5mKQFaYl6lHj2SXQRwDKCg",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "山川与我皆从容",
+    "user_openid": "o1ridv80HibzJimlq6l0zBnVNMRs",
+    "identity_type": 1,
+    "identity_open_id": "ZSPDsO86f0t9MvchYdeWUw",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "创作者百科",
+    "user_openid": "o1ridv4lr8oroT5SEPiAccD3YmHI",
+    "identity_type": 1,
+    "identity_open_id": "2VgQedS_AwzJl7eo082DGw",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "Joe",
+    "user_openid": "o1ridv8tdMntmmu46p9CTff6NLcs",
+    "identity_type": 0,
+    "identity_open_id": "6lysGCGAZF-XPAEM8xWgZA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "程一一之天空飞仙",
+    "user_openid": "o1ridv7_zgyAJJKXQYa0T6MaKGvc",
+    "identity_type": 1,
+    "identity_open_id": "n9rTxK7Czkx_1sYjh9jAQw",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "复盘我40岁的人生",
+    "user_openid": "o1ridv2NNnXjN9LFz7A8nOP8QdzQ",
+    "identity_type": 1,
+    "identity_open_id": "swtTj29k3W45m4AHmVzvLQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "🇧 🇷 🇺 🇨 🇪",
+    "user_openid": "o1ridv0MZaJ9q8yitLkgg2eaOTH0",
+    "identity_type": 0,
+    "identity_open_id": "Btz937ZfcSS6Uz9VysmXMQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "YP·梓宁",
+    "user_openid": "o1ridv0b7qj6zWR4cW-HV9F2z3qI",
+    "identity_type": 0,
+    "identity_open_id": "RWce4_E6MYRF_PIQhjz8_Q",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "甘肃百事通（零号）",
+    "user_openid": "o1ridv1xRiTOanEJAII252s_9rVM",
+    "identity_type": 0,
+    "identity_open_id": "sBIUUm_78cBxX-Oa20ZXZg",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "大展鸿图",
+    "user_openid": "o1ridv7hL_9jrBdIAqukvLggoD8s",
+    "identity_type": 0,
+    "identity_open_id": "Zv-G8AHXauGo82f4CGODYw",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "杂记儿",
+    "user_openid": "o1ridv-L4dTshSsj3zP0F04v6UzQ",
+    "identity_type": 1,
+    "identity_open_id": "Q1apezEiIOQFpHyKI0p61w",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "线团造物志",
+    "user_openid": "o1ridvzedj2yrWm3GdtXRYNsd9Io",
+    "identity_type": 1,
+    "identity_open_id": "L63YIgldKnMCayLcLWOylg",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "阿杏不偷懒",
+    "user_openid": "o1ridvw-gWf5d9ozL7s5Aq3IMaD4",
+    "identity_type": 1,
+    "identity_open_id": "k5YOwcQj6vRv4IEHWlTSuA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "晗晗妈咪",
+    "user_openid": "o1ridv33NIJCUFQaZpnwREyNARSE",
+    "identity_type": 0,
+    "identity_open_id": "auW3UcByaH6RMrrGWqfsNQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "霓虹末记",
+    "user_openid": "o1ridv2lfwgUFEoPuz2nf-NS7sxo",
+    "identity_type": 0,
+    "identity_open_id": "E3i__8BdvemfW4WGainDfA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "不知名网友",
+    "user_openid": "o1ridvybTPBC2icCCe0JV4BCWSMw",
+    "identity_type": 0,
+    "identity_open_id": "achv2ppfFI0ipXU-WL4nZw",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "畅快时光的小确幸",
+    "user_openid": "o1ridv900Iv4XT0RIFU-h_NdQtzQ",
+    "identity_type": 1,
+    "identity_open_id": "DtLp4MFdi1S3WDSYLgkpHQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "marina",
+    "user_openid": "o1ridv0gLYpsDonE-dXF5pttc_1s",
+    "identity_type": 0,
+    "identity_open_id": "wKqgcuo3-Fv7ekaqvJV1dQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "小旧子运营笔记",
+    "user_openid": "o1ridv41s7Y0i5Ssx8xqLKojWPMs",
+    "identity_type": 1,
+    "identity_open_id": "zHyUqVFlP-oX9NA6tY92wQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "小欣要暴富富",
+    "user_openid": "o1ridv-qx7gl78Brkqk25WccicxE",
+    "identity_type": 1,
+    "identity_open_id": "gaBtr6oLPumf6tfsmOf0Iw",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "茶语小拾",
+    "user_openid": "o1ridv19mnoJ7ijo_agkuMxnqbSg",
+    "identity_type": 0,
+    "identity_open_id": "igRTOXu5965N-fasNBWQ-g",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "千料随笔",
+    "user_openid": "o1ridv_0w0EDJl3vDp70V096JYG4",
+    "identity_type": 1,
+    "identity_open_id": "4t6JbRT1fHIGGwwd-wKBIg",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "IYUIL",
+    "user_openid": "o1ridv3T3n142mUBkYLBMHyzIeaQ",
+    "identity_type": 0,
+    "identity_open_id": "CptJ-nlUftBcLHoAcJnYoA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "赵红",
+    "user_openid": "o1ridv3dK0rZwRr3dHCjb9w26W78",
+    "identity_type": 0,
+    "identity_open_id": "786-7V-5zA-mH6sLxUXzAg",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "跳儿糖",
+    "user_openid": "o1ridv7uWWdwrkZHfrtjmH8UUUW4",
+    "identity_type": 0,
+    "identity_open_id": "xbWRbqDRro6pqYKV96bCDA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "王文青",
+    "user_openid": "o1ridv8e11ZsOKrI5sJkfX4dipTk",
+    "identity_type": 0,
+    "identity_open_id": "k2f0OYnJdZuDF_yVaQYnlQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "小鸽子",
+    "user_openid": "o1ridv0iDnAnC3q__T4qhanK_tP0",
+    "identity_type": 0,
+    "identity_open_id": "EShRaLHL_8ZvCNhQUCg00g",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "花雨梦蝶",
+    "user_openid": "o1ridv1dZST_gBVDfM0WTWyz5eyc",
+    "identity_type": 0,
+    "identity_open_id": "Bpu-cf1L3R1L6YdEs904uA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "莲",
+    "user_openid": "o1ridv2x_Mcm_FpHLnOQPcmGkSk8",
+    "identity_type": 0,
+    "identity_open_id": "009sXoT2HhtoZTxxHvvx3w",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "李伟13285394168",
+    "user_openid": "o1ridv7HFAfGxLj1d3qldiq992OU",
+    "identity_type": 0,
+    "identity_open_id": "nkMmU9pthmoMt2czo3eiXw",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "风子",
+    "user_openid": "o1ridv6nbrLAERjby7gYvUob5vzo",
+    "identity_type": 0,
+    "identity_open_id": "-GD4zI7vIQtMAj7i7fs9hA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "开心每一天",
+    "user_openid": "o1ridv-3p6GSZ8iPXAqgAb5A-z6E",
+    "identity_type": 0,
+    "identity_open_id": "CFTH3PJhGvOBfYI_TFf8dQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "虞",
+    "user_openid": "o1ridv5TN1dzdkCP9SA8ZLMmV190",
+    "identity_type": 0,
+    "identity_open_id": "xv7etodia69FKj-Fl_5cRg",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "马樱歌",
+    "user_openid": "o1ridv-C1jvizt9Q0niAPYfmSx-8",
+    "identity_type": 0,
+    "identity_open_id": "3flMsP7q53jTZa7KYAMuRg",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "快乐码头🐟老高",
+    "user_openid": "o1ridv4Nk8nTBawBK85Fqf-eu3hc",
+    "identity_type": 0,
+    "identity_open_id": "oR3Vu1iOseuBvNCuuZJR9g",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "37度的生活",
+    "user_openid": "o1ridv0llpnryJVmVJQCfYlRijZ4",
+    "identity_type": 0,
+    "identity_open_id": "i9jpgbrLshOKmmGNGKwprQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "那",
+    "user_openid": "o1ridvySIvIMoUHMBn52fkGbza80",
+    "identity_type": 0,
+    "identity_open_id": "j5KJbmOokvLpxOcZ-advBA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "A贵州水城羊肉粉(置信店)",
+    "user_openid": "o1ridv0MVk2ChFUqCKs_fMVmS5LI",
+    "identity_type": 0,
+    "identity_open_id": "OudoxrJ80KupyI_0fCHMMw",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "锋",
+    "user_openid": "o1ridv5f6Wqk0w3a6naBXGdM0yk4",
+    "identity_type": 0,
+    "identity_open_id": "5IJd0W3QVOLAxxbVcj30TQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "君华💋",
+    "user_openid": "o1ridv-pRTm7GrO3tqScFCrkixG4",
+    "identity_type": 0,
+    "identity_open_id": "MIAuHqWBIp3gqmz3Y0k3sQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "张建宇",
+    "user_openid": "o1ridvym-HxTDmBOoCOeLH5wxW2s",
+    "identity_type": 0,
+    "identity_open_id": "89SXB3JKIlVIwKaM3jZ8LQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "职场奶爸锋叔",
+    "user_openid": "o1ridv3sw6jVS3Cs07y24MjLOwYw",
+    "identity_type": 1,
+    "identity_open_id": "fT0ytGSxCU6Oglj0_FHpOg",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "黄丁羽",
+    "user_openid": "o1ridv8UFhHYEZkC0GhJB-Z-OM9w",
+    "identity_type": 0,
+    "identity_open_id": "x1MsT4plKZ9qGFQ_WvVn7A",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "李丽群",
+    "user_openid": "o1ridvwvXP049BCgGXnWlKl7E8Y8",
+    "identity_type": 0,
+    "identity_open_id": "YwoqOpHJ2h7kswVfxDkfHw",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "冉",
+    "user_openid": "o1ridv4aISXHHbiokV3C63yT9o04",
+    "identity_type": 0,
+    "identity_open_id": "KFFetUhEwPlh3qScJcsWNA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "做60分妈妈",
+    "user_openid": "o1ridv3q0uGtGakc0_eFywWa7XQE",
+    "identity_type": 1,
+    "identity_open_id": "VL62c4paK4pvoDugFTM5dg",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "干撒387",
+    "user_openid": "o1ridv-QbwPiOZw6bqbEIoUDe3LI",
+    "identity_type": 0,
+    "identity_open_id": "At84Dg_gSX-sl2Ge44mvUg",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "今生只想借妳一夜",
+    "user_openid": "o1ridv6mzIgCC3mcz8UkOSZ0M_Uc",
+    "identity_type": 0,
+    "identity_open_id": "BsbWmZZY8AR0xDyqfLWptg",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "陈文丽",
+    "user_openid": "o1ridv2jbBTb-VnsWowdTBIk0I7s",
+    "identity_type": 0,
+    "identity_open_id": "c_Logj1F1ne_almCe2L-Kg",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "打靶归来1526",
+    "user_openid": "o1ridv_3gz373qVNqzDe0XUQEg_I",
+    "identity_type": 1,
+    "identity_open_id": "z3FhM5mbqD7RjmPSOUH3eQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "行人",
+    "user_openid": "o1ridvzAT-YuACR1iGxWsQnl9UIM",
+    "identity_type": 0,
+    "identity_open_id": "UfHSQxzu6KvK4UjRQf1kQw",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "李伟",
+    "user_openid": "o1ridv_HR9w9HQhqvHSdNZFwCFs4",
+    "identity_type": 0,
+    "identity_open_id": "Zu_B0SXhUvM4uBwgsBL1ng",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "Hu小丹^_^",
+    "user_openid": "o1ridvyE_3ZgKwXNXIrHN_h332b0",
+    "identity_type": 0,
+    "identity_open_id": "mSipIluDonlSwLJSoz6Jog",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "海伦",
+    "user_openid": "o1ridv3VQo_wk7_n3sDtA20WcwG0",
+    "identity_type": 0,
+    "identity_open_id": "22q5g7O7ecGEMwQBPdlfhQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "sunny",
+    "user_openid": "o1ridv5h6dvhr9P7IEsYEwDjitZI",
+    "identity_type": 0,
+    "identity_open_id": "l1xN3cDTubfsgLZftJqJFQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "青青草",
+    "user_openid": "o1ridv3mKTPvfjQYLvNbpsqgX0PM",
+    "identity_type": 0,
+    "identity_open_id": "OunSxIlZRHovaTFteepBOA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "希明🍄",
+    "user_openid": "o1ridvyWYw9XiDcoshYRmBG02OOo",
+    "identity_type": 0,
+    "identity_open_id": "cxuxumJK6gDu_hg23qguRA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "懿点不正经",
+    "user_openid": "o1ridv-tgrF6ZbqxWyAApIYJ1XUQ",
+    "identity_type": 1,
+    "identity_open_id": "jkGDeuVn1cKpCLReI8MoXg",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "余飞",
+    "user_openid": "o1ridvyEqWhWl0TYv9--h3HLdrOQ",
+    "identity_type": 0,
+    "identity_open_id": "H7gN741DUGrba7WwCGWHbw",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "Pingdong",
+    "user_openid": "o1ridvyjJYA2oxjZRRXECyNtueu4",
+    "identity_type": 0,
+    "identity_open_id": "KSHh-TtN5k03MR9ECHiEYA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "王硕",
+    "user_openid": "o1ridv0L66UZmfSbs-pmaQSIkJSU",
+    "identity_type": 0,
+    "identity_open_id": "T4FeuGH5bdPqxK6FG9xc5Q",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "高静🌏",
+    "user_openid": "o1ridvxq_wPSkOpF2kP8Mxlty4Z8",
+    "identity_type": 0,
+    "identity_open_id": "4zolii4Gr3-ULSTUbTM2YA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "小白菜",
+    "user_openid": "o1ridv7ShmlNIE_bkfRagKF86skI",
+    "identity_type": 0,
+    "identity_open_id": "NzPdLxa6arzG2Ox691cXgA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "布狸",
+    "user_openid": "o1ridv-RnHdSR4muPRFXA6e1NhR4",
+    "identity_type": 0,
+    "identity_open_id": "eKmrDxWwAL3D4LboUOKNRA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "瑄",
+    "user_openid": "o1ridv_EZPT9cA6CEWlSWWM9-d-M",
+    "identity_type": 0,
+    "identity_open_id": "EPOfLlSJZE8HMn_qyn4icA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "MIRACLE",
+    "user_openid": "o1ridvyH_iM1bu3wIgRiu-rE8xVs",
+    "identity_type": 0,
+    "identity_open_id": "NE-zpbiVwY9Qm6apS68Cfg",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "于小贝卡",
+    "user_openid": "o1ridv_f8QZPq2fxbiR02kgqekyM",
+    "identity_type": 0,
+    "identity_open_id": "P-6mfrxWJRzDvKHwDlOSaQ",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "娟子",
+    "user_openid": "o1ridv9NFeZ9-FDKT-DBtV9NL3kY",
+    "identity_type": 0,
+    "identity_open_id": "Qh8KNd6sJ3qXBJ43_qnNCw",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "ZH园",
+    "user_openid": "o1ridv9vi0ZNN9ew8WjTXr7n7Kuo",
+    "identity_type": 0,
+    "identity_open_id": "ddetfFHBoKgfVMba95ULuA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "Xuexue",
+    "user_openid": "o1ridv3FYOg520POlCFqe1_fgV1I",
+    "identity_type": 0,
+    "identity_open_id": "ywPEUR3NgPsdw7pFpn0weg",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "海锋",
+    "user_openid": "o1ridvxe3AECz8fi3ha9bFC2Xhww",
+    "identity_type": 0,
+    "identity_open_id": "7_99xOwOPGdIrYgpOmjrEA",
+    "followed": false,
+    "handled": false
+  },
+  {
+    "user_name": "锋",
+    "user_openid": "o1ridvwvdduBtGOluAt60nOpckdI",
+    "identity_type": 0,
+    "identity_open_id": "0cEpZfhZKImuIYPH_U4tyw",
+    "followed": false,
+    "handled": false
   }
-}
+]

@@ -316,8 +316,8 @@
     "user_openid": "o1ridvwVWfSfNnQp5Z95JjYrBGDY",
     "identity_type": 1,
     "identity_open_id": "3K-Z0cCI9ddSxjRQwmGS-A",
-    "followed": false,
-    "handled": false
+    "followed": true,
+    "handled": true
   },
   {
     "user_name": "素非",
@@ -325,63 +325,63 @@
     "identity_type": 0,
     "identity_open_id": "dskjjC0ZHef4fIAJrcFOjA",
     "followed": false,
-    "handled": false
+    "handled": true
   },
   {
     "user_name": "玫瑰花语",
     "user_openid": "o1ridv1yYuJmwiE_4Ha9oyhcY3Xw",
     "identity_type": 0,
     "identity_open_id": "4C1TGQaxB220IeSG3R4ifA",
-    "followed": false,
-    "handled": false
+    "followed": true,
+    "handled": true
   },
   {
     "user_name": "阳光",
     "user_openid": "o1ridv1BFD4BzEPMBmunv_pKYyN0",
     "identity_type": 0,
     "identity_open_id": "f991blF7EDLSE8um6lp4cg",
-    "followed": false,
-    "handled": false
+    "followed": true,
+    "handled": true
   },
   {
     "user_name": "七月安禾",
     "user_openid": "o1ridvzFtvVXYdplHNLBNwEcAUsg",
     "identity_type": 1,
     "identity_open_id": "fOPApGfn_X-sSLiWzidPXg",
-    "followed": false,
-    "handled": false
+    "followed": true,
+    "handled": true
   },
   {
     "user_name": "资浅体育迷",
     "user_openid": "o1ridv4x4h3fyTN7x4qsYci397PU",
     "identity_type": 1,
     "identity_open_id": "5__SORc2O195y212ahkIBQ",
-    "followed": false,
-    "handled": false
+    "followed": true,
+    "handled": true
   },
   {
     "user_name": "碎碎念的送送",
     "user_openid": "o1ridv93j9yfWo9zZ0pkk_a_999A",
     "identity_type": 1,
     "identity_open_id": "Bt74GXdL-h-uA5ph3pYnug",
-    "followed": false,
-    "handled": false
+    "followed": true,
+    "handled": true
   },
   {
     "user_name": "语田田",
     "user_openid": "o1ridv4goPpCSxRHDOra6OUrzY10",
     "identity_type": 1,
     "identity_open_id": "qVfor_FRu-D1F0alc3-TvQ",
-    "followed": false,
-    "handled": false
+    "followed": true,
+    "handled": true
   },
   {
     "user_name": "sola为伴",
     "user_openid": "o1ridvzPkXDDYB-N1Rhnd8PKhRu4",
     "identity_type": 1,
     "identity_open_id": "dChLqAqi--031qGBErUj7w",
-    "followed": false,
-    "handled": false
+    "followed": true,
+    "handled": true
   },
   {
     "user_name": "一分三娱乐",
@@ -389,15 +389,15 @@
     "identity_type": 1,
     "identity_open_id": "5mKQFaYl6lHj2SXQRwDKCg",
     "followed": false,
-    "handled": false
+    "handled": true
   },
   {
     "user_name": "山川与我皆从容",
     "user_openid": "o1ridv80HibzJimlq6l0zBnVNMRs",
     "identity_type": 1,
     "identity_open_id": "ZSPDsO86f0t9MvchYdeWUw",
-    "followed": false,
-    "handled": false
+    "followed": true,
+    "handled": true
   },
   {
     "user_name": "创作者百科",
@@ -405,7 +405,7 @@
     "identity_type": 1,
     "identity_open_id": "2VgQedS_AwzJl7eo082DGw",
     "followed": false,
-    "handled": false
+    "handled": true
   },
   {
     "user_name": "Joe",

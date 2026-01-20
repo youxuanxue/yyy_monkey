@@ -568,7 +568,7 @@ class AutoFollower:
         time.sleep(0.2)
         pyautogui.click(card_x + offset_x, card_y + offset_y)
         
-        time.sleep(1.0)
+        time.sleep(2.0)
         return True
     
     ALREADY_FOLLOWED_IMAGE = "yiguanzhu.png"

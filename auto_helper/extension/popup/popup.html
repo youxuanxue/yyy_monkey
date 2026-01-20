@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Shorts Helper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎬 YouTube Shorts Helper</h1>
+    </header>
+
+    <main>
+      <!-- Auto Mode Toggle -->
+      <section class="card control-panel">
+        <div class="section-header">
+          <h2>🤖 自动模式</h2>
+          <span class="subtitle">LLM 智能判断</span>
+        </div>
+        <div class="toggle-container">
+          <label class="switch">
+            <input type="checkbox" id="autoModeToggle">
+            <span class="slider round"></span>
+          </label>
+          <span id="autoModeStatus" class="status-text">已关闭</span>
+        </div>
+      </section>
+
+      <!-- LLM Status -->
+      <section class="card llm-status">
+        <div class="section-header">
+          <h2>🧠 LLM 状态</h2>
+        </div>
+        <div class="info-row">
+          <span class="label">模型:</span>
+          <span class="value" id="llmModel">loading...</span>
+        </div>
+        <div class="info-row">
+          <span class="label">状态:</span>
+          <span class="value status-indicator" id="llmConnectionStatus">
+            <span class="dot"></span>
+            <span class="text">检查中...</span>
+          </span>
+        </div>
+      </section>
+
+      <!-- Daily Stats -->
+      <section class="card stats">
+        <div class="section-header">
+          <h2>📊 今日统计</h2>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-item">
+            <span class="stat-value" id="statsAnalyzed">0</span>
+            <span class="stat-label">已分析</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="statsInteracted">0</span>
+            <span class="stat-label">已互动</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="statsSkipped">0</span>
+            <span class="stat-label">已跳过</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <button id="openSettings" class="btn-settings">⚙️ 设置</button>
+    </footer>
+  </div>
+  <script src="../utils/storage.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

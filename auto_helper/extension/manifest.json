@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Shorts Helper",
+  "version": "1.0.0",
+  "description": "YouTube Shorts 自动互动助手 - 自动订阅、点赞、评论",
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "http://localhost:11434/*",
+    "https://api.openai.com/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/shorts/*", "https://www.youtube.com/*"],
+      "js": [
+        "utils/selectors.js",
+        "utils/messaging.js",
+        "content/video-info.js",
+        "content/interactor.js",
+        "content/ui-overlay.js",
+        "content/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "assets/icons/icon16.png",
+      "48": "assets/icons/icon48.png",
+      "128": "assets/icons/icon128.png"
+    }
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "16": "assets/icons/icon16.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
+  }
+}

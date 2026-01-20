@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Shorts Helper Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>⚙️ YouTube Shorts Helper 设置</h1>
+    </header>
+
+    <main>
+      <!-- LLM Configuration -->
+      <section class="card">
+        <h2>🧠 LLM 配置</h2>
+        <div class="form-group">
+          <label for="apiBaseUrl">API Base URL</label>
+          <input type="text" id="apiBaseUrl" placeholder="http://localhost:11434/v1">
+          <p class="hint">默认 Ollama 地址: http://localhost:11434/v1</p>
+        </div>
+        <div class="form-group">
+          <label for="apiKey">API Key</label>
+          <input type="password" id="apiKey" placeholder="ollama">
+          <p class="hint">Ollama 可填任意值，OpenAI 需填写真实 Key</p>
+        </div>
+        <div class="form-group">
+          <label for="model">Model</label>
+          <input type="text" id="model" placeholder="qwen2.5:3b">
+        </div>
+        <div class="form-actions">
+          <button id="testConnectionBtn" class="btn secondary">测试连接</button>
+          <span id="connectionStatus" class="status-text"></span>
+        </div>
+      </section>
+
+      <!-- Prompt Configuration -->
+      <section class="card">
+        <h2>📝 互动策略配置</h2>
+        <div class="form-group">
+          <label for="systemPrompt">System Prompt</label>
+          <textarea id="systemPrompt" rows="12" placeholder="你是一个 YouTube 内容分析助手..."></textarea>
+          <p class="hint">自定义 LLM 的系统提示词，用于判断是否值得互动。留空则使用默认配置。</p>
+        </div>
+      </section>
+
+      <!-- Safety Settings -->
+      <section class="card">
+        <h2>🛡️ 安全设置</h2>
+        <div class="form-group checkbox-group">
+          <input type="checkbox" id="skipInteracted">
+          <label for="skipInteracted">跳过已互动的视频 (推荐)</label>
+        </div>
+        <div class="form-group">
+          <label for="maxDailyInteractions">每日最大互动数</label>
+          <input type="number" id="maxDailyInteractions" value="50">
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <button id="saveBtn" class="btn primary">保存设置</button>
+      <span id="saveStatus" class="status-msg"></span>
+    </footer>
+  </div>
+  
+  <script src="../utils/storage.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

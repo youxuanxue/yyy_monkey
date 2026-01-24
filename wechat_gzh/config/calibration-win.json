@@ -21,7 +21,7 @@
     "account_name_width": 400,
     "account_name_height": 50,
     "_account_name": "公众号名称区域：(x, y) 是左上角，width/height 是宽高",
-    "article_title_x": 450,
+    "article_title_x": 400,
     "article_title_y": 90,
     "article_title_width": 1000,
     "article_title_height": 50,

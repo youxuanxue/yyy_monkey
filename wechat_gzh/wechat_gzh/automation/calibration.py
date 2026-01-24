@@ -30,6 +30,10 @@ class OCRCalibration:
     article_title_y: int = 200
     article_title_width: int = 400
     article_title_height: int = 60
+    searched_gongzhonghao_x: int = 800
+    searched_gongzhonghao_y: int = 150
+    searched_gongzhonghao_width: int = 1500
+    searched_gongzhonghao_height: int = 100
 
 
 @dataclass
@@ -152,6 +156,11 @@ class CalibrationManager:
                 "article_title_width": self._data.ocr.article_title_width,
                 "article_title_height": self._data.ocr.article_title_height,
                 "_article_title": "文章标题区域：(x, y) 是屏幕左上角坐标，width/height 是宽高",
+                "searched_gongzhonghao_x": self._data.ocr.searched_gongzhonghao_x,
+                "searched_gongzhonghao_y": self._data.ocr.searched_gongzhonghao_y,
+                "searched_gongzhonghao_width": self._data.ocr.searched_gongzhonghao_width,
+                "searched_gongzhonghao_height": self._data.ocr.searched_gongzhonghao_height,
+                "_searched_gongzhonghao": "搜一搜下面的第一张公众号卡片的位置：(x, y) 是屏幕左上角坐标，width/height 是宽高",
             },
             
             "calibrated": self._data.calibrated,

@@ -66,6 +66,7 @@ async function handleVideoChange(data, tabId) {
         const interactedVideos = await Storage.get(Storage.KEYS.INTERACTED_VIDEOS) || [];
         if (interactedVideos.includes(data.videoId)) {
             Messaging.sendToActiveTab(MESSAGE_TYPES.SHOW_DECISION, { status: 'skip', message: '已互动过' });
+            // Content script will auto-swipe based on the skip message
             return;
         }
     }
@@ -83,6 +84,7 @@ async function handleVideoChange(data, tabId) {
     const maxInteractions = settings.maxDailyInteractions || 50;
     if (stats.interacted >= maxInteractions) {
         Messaging.sendToActiveTab(MESSAGE_TYPES.SHOW_DECISION, { status: 'skip', message: '今日达限' });
+        // Content script will auto-swipe based on the skip message
         return;
     }
 
@@ -122,21 +124,13 @@ async function handleVideoChange(data, tabId) {
                 }
 
                 // 4. Send Interaction Command
+                // Content script will auto-swipe after all actions are completed
                 setTimeout(() => {
                     Messaging.sendToActiveTab(MESSAGE_TYPES.EXECUTE_INTERACTION, {
                         actions: actions,
                         comment: decision.result.comment_text
                     });
                 }, 2000);
-                
-                // 5. Send Next Video Command (Random delay 5-25s after interaction)
-                const nextDelay = Math.floor(Math.random() * 20000) + 5000; // 5000-25000ms
-                setTimeout(() => {
-                    console.log(`[Background] Swiping to next video in ${nextDelay}ms`);
-                    Messaging.sendToActiveTab(MESSAGE_TYPES.EXECUTE_INTERACTION, {
-                        actions: { swipe: true } // Custom swipe action
-                    });
-                }, 4000 + nextDelay); // Wait for interaction + delay
                 
                 await recordInteraction(data.videoId);
                 updateStats(true, false);
@@ -147,15 +141,7 @@ async function handleVideoChange(data, tabId) {
                     message: '不感兴趣',
                     details: decision.result.reason
                 });
-
-                // Send Next Video Command for Skipped Videos (Faster swipe: 3-6s)
-                const skipDelay = Math.floor(Math.random() * 3000) + 3000;
-                setTimeout(() => {
-                    console.log(`[Background] Skipping to next video in ${skipDelay}ms`);
-                    Messaging.sendToActiveTab(MESSAGE_TYPES.EXECUTE_INTERACTION, {
-                        actions: { swipe: true } 
-                    });
-                }, skipDelay);
+                // Content script will auto-swipe based on the skip message
             }
         } else {
             Messaging.sendToActiveTab(MESSAGE_TYPES.SHOW_DECISION, { status: 'error', message: '分析失败' });

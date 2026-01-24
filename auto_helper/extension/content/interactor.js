@@ -4,7 +4,7 @@
  */
 
 const Interactor = {
-    async perform(actions, commentText) {
+    async perform(actions, commentText, skipType = null) {
         console.log('[Interactor] Performing actions:', actions);
 
         if (actions.subscribe) {
@@ -31,9 +31,35 @@ const Interactor = {
             await this._sleep(delay);
         }
 
-        if (actions.swipe) {
+        // Check if there are any interaction actions (subscribe, like, comment)
+        const hasInteractions = actions.subscribe || actions.like || (actions.comment && commentText);
+        
+        if (actions.swipe && !hasInteractions) {
+            // Only swipe command, no other actions - handle delay based on skipType
+            let swipeDelay = 0;
+            
+            if (skipType === 'alreadyInteracted' || skipType === 'dailyLimit' || skipType === 'notInterested') {
+                // 3-6s delay for already interacted or daily limit
+                swipeDelay = Math.floor(Math.random() * 3000) + 3000; // 3000-6000ms
+                console.log(`[Interactor] Skip type: ${skipType}, waiting ${swipeDelay}ms before swipe...`);
+            } else {
+                // Default: immediate swipe (fallback)
+                console.log('[Interactor] Swiping immediately (no skip type specified)');
+            }
+            
+            if (swipeDelay > 0) {
+                await this._sleep(swipeDelay);
+            }
+            await this.swipeNext();
+        } else if (hasInteractions) {
+            // All interaction actions completed, auto-swipe with random delay
+            // Random delay 5-15s after all interactions completed
+            const swipeDelay = Math.floor(Math.random() * 10000) + 5000; // 5000-15000ms
+            console.log(`[Interactor] All actions completed. Swiping to next video in ${swipeDelay}ms...`);
+            await this._sleep(swipeDelay);
             await this.swipeNext();
         }
+        // If no actions at all, do nothing
     },
 
     async swipeNext() {
@@ -172,7 +198,8 @@ const Interactor = {
         
         // Dispatch events just in case
         input.dispatchEvent(new Event('input', { bubbles: true }));
-        await this._sleep(1000);
+        const delay = Math.floor(Math.random() * 5000) + 5000; // 5000-10000ms (5-10s)
+        await this._sleep(delay);
 
         // 4. Submit
         const submitBtn = document.querySelector(sel.submitButton);

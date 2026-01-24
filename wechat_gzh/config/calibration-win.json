@@ -11,12 +11,12 @@
     "_account_item_height": "每个公众号项的高度（用于计算第N个公众号的位置）",
     "article_area_x": 1200,
     "_article_area_x": "文章/消息区域的 X 坐标偏移",
-    "article_area_y": 600,
+    "article_area_y": 400,
     "_article_area_y": "文章/消息区域的 Y 坐标偏移"
   },
   "ocr": {
     "_说明": "OCR 识别区域配置 - 控制文字识别的截图区域",
-    "account_name_x": 660,
+    "account_name_x": 680,
     "account_name_y": 40,
     "account_name_width": 400,
     "account_name_height": 50,

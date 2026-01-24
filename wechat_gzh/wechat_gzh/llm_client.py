@@ -253,46 +253,53 @@ class LLMCommentGenerator:
     def generate_comment(
         self,
         article_content: str,
-        suffix: str = "已关盼回。"
+        suffix: str = "已关盼回。",
+        _retry_count: int = 0
     ) -> Optional[str]:
         """
         根据文章内容生成评论
-        
+
         Args:
             article_content: 文章内容
             suffix: 评论后缀
-            
+            _retry_count: 内部重试计数（请勿手动设置）
+
         Returns:
             生成的评论，失败返回 None
+
+        Raises:
+            SystemExit: 重试3次仍然失败时退出程序
         """
+        MAX_RETRIES = 3
+
         if not self.is_available():
             logger.warning("LLM 客户端不可用")
             return None
-        
+
         if not self.task_config:
             logger.warning("配置未加载")
             return None
-        
+
         if not article_content or not article_content.strip():
             logger.warning("文章内容为空")
             return None
-        
+
         try:
             # 获取任务配置
             task_config = self.task_config.get("task_comment_generation", {})
             persona_config = task_config.get("default")
-            
+
             if not persona_config:
                 logger.warning("未找到默认 persona 配置")
                 return None
-            
+
             system_prompt = persona_config.get("system_prompt", "")
             user_prompt_template = persona_config.get("user_prompt", "")
-            
+
             if not system_prompt or not user_prompt_template:
                 logger.warning("系统提示词或用户提示词为空")
                 return None
-            
+
             # 格式化 user_prompt
             # 优化：限制文章内容长度，提高生成速度
             # 对于评论生成任务，通常前 800 个字符已足够理解大意
@@ -300,60 +307,57 @@ class LLMCommentGenerator:
             user_prompt = user_prompt_template.format(
                 article_content=article_content[:800]
             )
-            
+
             # 获取模型
             model_name = os.environ.get("OPENAI_MODEL", self._get_default_model())
-            
+
             # 调用 LLM API
             start_time = time.time()
             logger.info(f"正在调用 LLM 生成评论 (模型: {model_name}, 输入长度: {len(article_content[:800])})...")
-            
-            # 设置较短的超时时间，避免长时间卡死
-            try:
-                response = self.client.chat.completions.create(
-                    model=model_name,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    temperature=0.7,
-                    max_tokens=60,  # 评论通常很短，减少生成token数
-                    timeout=30.0,   # 30秒超时
-                )
-            except Exception as e:
-                logger.warning(f"LLM 请求超时或出错 ({e})，将使用默认评论")
-                return None
-            
+
+            response = self.client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.7,
+                max_tokens=60,  # 评论通常很短，减少生成token数
+                timeout=30.0,   # 30秒超时
+            )
+
             elapsed = time.time() - start_time
             logger.info(f"LLM 生成耗时: {elapsed:.2f}s")
-            
+
             comment = response.choices[0].message.content.strip()
-            
-            # 清理评论（移除引号等）
-            comment = comment.strip('"\'')
-            
-            # 检查评论中是否已经包含回关相关的关键词
-            follow_back_keywords = ["关", "互关", "回关", "关注", "交流", "互粉"]
-            has_follow_back_intent = any(keyword in comment for keyword in follow_back_keywords)
-            
-            # 如果评论完全没有回关意图，且 suffix 非空，才考虑添加
-            if not has_follow_back_intent and suffix and len(comment) < 15:
-                logger.info("评论中缺少回关意图，但已包含在 prompt 中，相信 AI 生成结果")
-            
             logger.info(f"LLM 生成评论: {comment}")
             return comment
-            
+
         except Exception as e:
             error_msg = str(e)
+            model_name = os.environ.get("OPENAI_MODEL", self._get_default_model())
+
+            # 检查是否是模型未找到的错误
             if "not found" in error_msg.lower() or "404" in error_msg:
                 logger.warning(f"模型 {model_name} 未找到，尝试自动拉取...")
                 if self.ollama_manager and self.ollama_manager.pull_model(model_name):
-                    # 拉取成功后重试一次
+                    # 拉取成功后重试
                     logger.info("模型拉取成功，正在重试生成评论...")
-                    return self.generate_comment(article_content, suffix)
-            
-            logger.error(f"生成评论失败: {e}")
-            return None
+                    return self.generate_comment(article_content, suffix, _retry_count)
+                else:
+                    logger.error(f"模型 {model_name} 拉取失败，请手动运行: ollama pull {model_name}")
+                    raise SystemExit(f"LLM 模型 {model_name} 不可用，程序退出")
+
+            # 其他错误，进行重试
+            _retry_count += 1
+            if _retry_count < MAX_RETRIES:
+                logger.warning(f"LLM 请求失败 ({e})，正在重试 ({_retry_count}/{MAX_RETRIES})...")
+                import time as time_module
+                time_module.sleep(2)  # 等待2秒后重试
+                return self.generate_comment(article_content, suffix, _retry_count)
+            else:
+                logger.error(f"LLM 请求失败，已重试 {MAX_RETRIES} 次，程序退出")
+                raise SystemExit(f"LLM 请求连续失败 {MAX_RETRIES} 次，程序退出")
     
     def warmup(self, timeout: float = 180.0) -> bool:
         """

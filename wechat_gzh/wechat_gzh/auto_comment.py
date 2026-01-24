@@ -461,7 +461,7 @@ class AutoCommentBot:
                 self.logger.info("正在使用 LLM 生成评论...")
                 if self.commenter.platform == "win":
                     comment_text = self.llm.generate_comment(
-                        article_title=article_title,
+                        article_content=article_title,
                         suffix=None
                     )
                 else:

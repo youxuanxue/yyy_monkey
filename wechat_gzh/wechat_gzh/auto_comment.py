@@ -15,6 +15,7 @@
 
 import argparse
 import os
+import platform
 import signal
 import sys
 import threading
@@ -371,7 +372,8 @@ class AutoCommentBot:
                 print("=" * 60)
                 print("请检查以下内容：")
                 print(f"  1. 调试截图: {LOG_DIR}/debug_*.png")
-                print(f"  2. 校准配置: {CONFIG_DIR}/calibration.json")
+                config_file = "calibration-win.json" if platform.system() == "Windows" else "calibration.json"
+                print(f"  2. 校准配置: {CONFIG_DIR}/{config_file}")
                 print("  3. 确认 OCR 的 account_name_* 区域是否正确")
                 print("=" * 60)
                 sys.exit(1)

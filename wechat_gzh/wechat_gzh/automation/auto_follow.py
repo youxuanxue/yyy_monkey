@@ -118,23 +118,28 @@ class AutoFollower:
         self._check_assets()
     
     def _load_calibration(self) -> None:
-        """加载校准配置文件"""
-        calibration_path = CONFIG_DIR / "calibration.json"
+        """加载校准配置文件，根据平台选择不同配置"""
+        # 根据平台选择配置文件
+        if platform.system() == "Windows":
+            calibration_path = CONFIG_DIR / "calibration-win.json"
+        else:
+            calibration_path = CONFIG_DIR / "calibration.json"
+
         if not calibration_path.exists():
             print(f"⚠ 未找到校准配置: {calibration_path}")
             return
-        
+
         try:
             with open(calibration_path, "r", encoding="utf-8") as f:
                 config = json.load(f)
-            
+
             ocr_config = config.get("ocr", {})
             if "searched_gongzhonghao_x" in ocr_config:
                 self.searched_gzh_x = ocr_config["searched_gongzhonghao_x"]
                 self.searched_gzh_y = ocr_config["searched_gongzhonghao_y"]
                 self.searched_gzh_width = ocr_config["searched_gongzhonghao_width"]
                 self.searched_gzh_height = ocr_config["searched_gongzhonghao_height"]
-                print(f"✓ 已加载 OCR 校准配置: ({self.searched_gzh_x}, {self.searched_gzh_y}, {self.searched_gzh_width}x{self.searched_gzh_height})")
+                print(f"✓ 已加载 OCR 校准配置 ({calibration_path.name}): ({self.searched_gzh_x}, {self.searched_gzh_y}, {self.searched_gzh_width}x{self.searched_gzh_height})")
         except Exception as e:
             print(f"⚠ 加载校准配置出错: {e}")
     
@@ -254,7 +259,17 @@ class AutoFollower:
         # 标准化比较
         norm_expected = self._normalize_name(expected_name)
         norm_recognized = self._normalize_name(recognized_name)
-        
+
+        # 防止空字符串导致误匹配
+        if not norm_expected or not norm_recognized:
+            # 标准化后为空（如纯 emoji 名称），使用原始名称直接比较
+            if expected_name.strip() == recognized_name.strip():
+                print(f"  ✓ 名称匹配: 【{expected_name}】")
+                return True
+            else:
+                print(f"  ✗ 名称不匹配: 期望【{expected_name}】, 识别【{recognized_name}】")
+                return False
+
         # 检查是否包含（因为 OCR 可能识别到额外内容）
         if norm_expected in norm_recognized or norm_recognized in norm_expected:
             print(f"  ✓ 名称匹配: 【{expected_name}】")
@@ -541,7 +556,7 @@ class AutoFollower:
     
     def click_first_card(self) -> bool:
         """
-        点击第一个公众号卡片（使用 calibration.json 中 searched_gongzhonghao 区域）
+        点击第一个公众号卡片（使用校准配置中 searched_gongzhonghao 区域）
         
         点击位置：区域正中间偏左侧 1/5 的位置
             
@@ -774,7 +789,8 @@ class AutoFollower:
             print(f"  - 红色框: 公众号卡片名称 OCR 识别区域")
             print(f"  - 区域配置: x={self.searched_gzh_x}, y={self.searched_gzh_y}, "
                   f"w={self.searched_gzh_width}, h={self.searched_gzh_height}")
-            print(f"\n如需调整，请编辑 config/calibration.json 中的 searched_gongzhonghao_* 配置")
+            config_file = "calibration-win.json" if platform.system() == "Windows" else "calibration.json"
+            print(f"\n如需调整，请编辑 config/{config_file} 中的 searched_gongzhonghao_* 配置")
             
             # 同时进行 OCR 识别测试
             if self._ocr:

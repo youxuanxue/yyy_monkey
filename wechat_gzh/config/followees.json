@@ -413,7 +413,7 @@
     "identity_type": 0,
     "identity_open_id": "6lysGCGAZF-XPAEM8xWgZA",
     "followed": false,
-    "handled": false
+    "handled": true
   },
   {
     "user_name": "程一一之天空飞仙",
@@ -421,7 +421,7 @@
     "identity_type": 1,
     "identity_open_id": "n9rTxK7Czkx_1sYjh9jAQw",
     "followed": false,
-    "handled": false
+    "handled": true
   },
   {
     "user_name": "复盘我40岁的人生",
@@ -429,15 +429,15 @@
     "identity_type": 1,
     "identity_open_id": "swtTj29k3W45m4AHmVzvLQ",
     "followed": false,
-    "handled": false
+    "handled": true
   },
   {
     "user_name": "🇧 🇷 🇺 🇨 🇪",
     "user_openid": "o1ridv0MZaJ9q8yitLkgg2eaOTH0",
     "identity_type": 0,
     "identity_open_id": "Btz937ZfcSS6Uz9VysmXMQ",
-    "followed": false,
-    "handled": false
+    "followed": true,
+    "handled": true
   },
   {
     "user_name": "YP·梓宁",
@@ -445,7 +445,7 @@
     "identity_type": 0,
     "identity_open_id": "RWce4_E6MYRF_PIQhjz8_Q",
     "followed": false,
-    "handled": false
+    "handled": true
   },
   {
     "user_name": "甘肃百事通（零号）",
@@ -453,31 +453,31 @@
     "identity_type": 0,
     "identity_open_id": "sBIUUm_78cBxX-Oa20ZXZg",
     "followed": false,
-    "handled": false
+    "handled": true
   },
   {
     "user_name": "大展鸿图",
     "user_openid": "o1ridv7hL_9jrBdIAqukvLggoD8s",
     "identity_type": 0,
     "identity_open_id": "Zv-G8AHXauGo82f4CGODYw",
-    "followed": false,
-    "handled": false
+    "followed": true,
+    "handled": true
   },
   {
     "user_name": "杂记儿",
     "user_openid": "o1ridv-L4dTshSsj3zP0F04v6UzQ",
     "identity_type": 1,
     "identity_open_id": "Q1apezEiIOQFpHyKI0p61w",
-    "followed": false,
-    "handled": false
+    "followed": true,
+    "handled": true
   },
   {
     "user_name": "线团造物志",
     "user_openid": "o1ridvzedj2yrWm3GdtXRYNsd9Io",
     "identity_type": 1,
     "identity_open_id": "L63YIgldKnMCayLcLWOylg",
-    "followed": false,
-    "handled": false
+    "followed": true,
+    "handled": true
   },
   {
     "user_name": "阿杏不偷懒",

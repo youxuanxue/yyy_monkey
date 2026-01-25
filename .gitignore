@@ -19,3 +19,7 @@ license.lic
 
 **/dist/
 **/runtime/
+
+comment_history.json
+**/.claude/
+.claude/

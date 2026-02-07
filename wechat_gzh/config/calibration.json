@@ -26,11 +26,13 @@
     "article_title_width": 400,
     "article_title_height": 60,
     "_article_title": "文章标题区域：(x, y) 是屏幕左上角坐标，width/height 是宽高",
-    "searched_gongzhonghao_x": 800,
-    "searched_gongzhonghao_y": 150,
-    "searched_gongzhonghao_width": 1500,
-    "searched_gongzhonghao_height": 100,
-    "_searched_gongzhonghao": "搜一搜下面的第一张公众号卡片的位置：(x, y) 是屏幕左上角坐标，width/height 是宽高"
+    "searched_gongzhonghao_x": 415,
+    "searched_gongzhonghao_y": 280,
+    "searched_gongzhonghao_width": 300,
+    "searched_gongzhonghao_height": 35,
+    "_searched_gongzhonghao": "搜一搜第一个公众号/视频号卡片名称区域：逻辑坐标（与 pyautogui 一致，Retina 下按屏幕点校对）",
+    "account_tab_y_max": 180,
+    "_account_tab_y_max": "账号标签 Y 上限(逻辑坐标)，超过则视为位置错误"
   },
   "calibrated": true
 }

@@ -116,11 +116,14 @@ class AutoFollower:
         else:
             print("⚠ CnOcr 未安装，OCR 功能不可用")
         
-        # 搜一搜公众号卡片 OCR 区域（物理像素）
+        # 搜一搜公众号/视频号第一个卡片 OCR 区域（逻辑坐标，与 pyautogui.size() 一致；Retina 下校对时按“点”量）
         self.searched_gzh_x = 800
         self.searched_gzh_y = 150
         self.searched_gzh_width = 1500
         self.searched_gzh_height = 100
+        
+        # 账号标签 Y 上限（逻辑坐标）：超过则视为误匹配，位置错误
+        self.account_tab_y_max = 180
         
         # 加载校准配置
         self._load_calibration()
@@ -150,6 +153,9 @@ class AutoFollower:
                 self.searched_gzh_width = ocr_config["searched_gongzhonghao_width"]
                 self.searched_gzh_height = ocr_config["searched_gongzhonghao_height"]
                 print(f"✓ 已加载 OCR 校准配置 ({calibration_path.name}): ({self.searched_gzh_x}, {self.searched_gzh_y}, {self.searched_gzh_width}x{self.searched_gzh_height})")
+            if "account_tab_y_max" in ocr_config:
+                self.account_tab_y_max = int(ocr_config["account_tab_y_max"])
+                print(f"✓ 账号标签 Y 上限: {self.account_tab_y_max}")
         except Exception as e:
             print(f"⚠ 加载校准配置出错: {e}")
     
@@ -191,6 +197,26 @@ class AutoFollower:
             print(f"  OCR 识别出错: {e}")
             return ""
     
+    def _capture_ocr_region(self) -> Optional[Image.Image]:
+        """
+        截取当前 OCR 识别区域（搜一搜第一个卡片名称区域）。
+        校准配置为逻辑坐标，pyautogui.screenshot(region=) 使用逻辑坐标，直接传配置值。
+        """
+        try:
+            logical_x = int(self.searched_gzh_x)
+            logical_y = int(self.searched_gzh_y)
+            logical_w = int(self.searched_gzh_width)
+            logical_h = int(self.searched_gzh_height)
+            screen_w, screen_h = pyautogui.size()
+            logical_x = max(0, min(logical_x, screen_w - 1))
+            logical_y = max(0, min(logical_y, screen_h - 1))
+            logical_w = max(1, min(logical_w, screen_w - logical_x))
+            logical_h = max(1, min(logical_h, screen_h - logical_y))
+            return pyautogui.screenshot(region=(logical_x, logical_y, logical_w, logical_h))
+        except Exception as e:
+            print(f"  OCR 区域截图出错: {e}")
+            return None
+
     def recognize_searched_gzh_name(self) -> str:
         """
         识别搜索结果中第一个公众号卡片的名称
@@ -203,14 +229,10 @@ class AutoFollower:
             return ""
         
         try:
-            # 截取区域
-            image = self._capture_region(
-                self.searched_gzh_x,
-                self.searched_gzh_y,
-                self.searched_gzh_width,
-                self.searched_gzh_height
-            )
-            
+            image = self._capture_ocr_region()
+            if image is None:
+                return ""
+
             # 识别文字
             text = self._recognize_text(image)
             
@@ -243,12 +265,13 @@ class AutoFollower:
         # 去除空格、标点符号，只保留中文、英文、数字
         return re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9]', '', name)
     
-    def verify_gzh_card_name(self, expected_name: str) -> bool:
+    def verify_gzh_card_name(self, expected_name: str, context: str = "公众号") -> bool:
         """
-        验证搜索结果中的公众号卡片名称是否匹配
-        
+        验证搜索结果中的公众号/视频号卡片名称是否匹配。
+
         Args:
-            expected_name: 期望的公众号名称
+            expected_name: 期望的名称
+            context: 当前场景，用于调试输出（"公众号" 或 "视频号"）
             
         Returns:
             是否匹配
@@ -275,6 +298,7 @@ class AutoFollower:
                 return True
             else:
                 print(f"  ✗ 名称不匹配: 期望【{expected_name}】, 识别【{recognized_name}】")
+                self._save_ocr_debug_crop(context, expected_name, recognized_name)
                 return False
 
         # 检查是否包含（因为 OCR 可能识别到额外内容）
@@ -283,7 +307,28 @@ class AutoFollower:
             return True
         else:
             print(f"  ✗ 名称不匹配: 期望【{expected_name}】, 识别【{recognized_name}】")
+            self._save_ocr_debug_crop(context, expected_name, recognized_name)
             return False
+
+    def _save_ocr_debug_crop(self, context: str, expected: str, recognized: str) -> None:
+        """名称不匹配时保存 OCR 区域截图到 logs/，便于核对区域是否对准卡片名称。"""
+        import re
+        crop = self._capture_ocr_region()
+        if crop is None:
+            return
+        logs_dir = PROJECT_DIR / "logs"
+        logs_dir.mkdir(exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe = lambda s: re.sub(r'[/\\:*?"<>|]', "_", str(s))[:30]
+        name = f"ocr_mismatch_{context}_期望{safe(expected)}_识别{safe(recognized)}_{timestamp}.png"
+        path = logs_dir / name
+        try:
+            crop.save(str(path))
+            print(f"  📷 已保存 OCR 区域截图便于核对: {path}")
+            print(f"  📐 当前 OCR 区域(逻辑): x={self.searched_gzh_x}, y={self.searched_gzh_y}, "
+                  f"w={self.searched_gzh_width}, h={self.searched_gzh_height} (calibration searched_gongzhonghao_*)")
+        except Exception as e:
+            print(f"  ⚠ 保存调试截图失败: {e}")
     
     def _check_assets(self) -> None:
         """检查图片资源是否存在"""
@@ -585,17 +630,35 @@ class AutoFollower:
     
     def click_account_tab(self) -> bool:
         """
-        点击账号标签
+        点击账号标签。若识别到的 Y 超过 account_tab_y_max，视为位置错误（不点击）。
         
         Returns:
             是否成功
         """
-        pos = self._find_and_click(self.ACCOUNT_TAB_IMAGES, "账号标签")
-        if not pos:
-            return False
-        
-        time.sleep(1.0)
-        return True
+        for i in range(3):
+            interrupt_handler.check()
+            pos = self._locate_multiple(self.ACCOUNT_TAB_IMAGES)
+            if not pos:
+                if i < 2:
+                    print(f"  未找到 账号标签，重试 ({i + 1}/3)...")
+                    time.sleep(1.0)
+                else:
+                    print(f"  ✗ 未找到 账号标签")
+                continue
+            if pos[1] > self.account_tab_y_max:
+                print(f"  ✗ 账号标签位置错误: Y 超出阈值 (y={pos[1]}, 阈值={self.account_tab_y_max})，未点击")
+                return False
+            print(f"  ✓ 找到 账号标签 位置: {pos}")
+            offset_x = random.randint(-3, 3)
+            offset_y = random.randint(-3, 3)
+            click_x = pos[0] + offset_x
+            click_y = pos[1] + offset_y
+            pyautogui.moveTo(click_x, click_y, duration=0.3)
+            time.sleep(0.2)
+            pyautogui.click(click_x, click_y)
+            time.sleep(1.0)
+            return True
+        return False
     
     def click_gzh_tab(self) -> bool:
         """
@@ -636,17 +699,12 @@ class AutoFollower:
         Returns:
             是否成功
         """
-        # 使用 OCR 区域配置计算点击位置（配置是物理像素）
-        # 正中间偏左侧 1/5：x + width * 0.3（即 1/2 - 1/5 = 3/10）
-        # 中间 Y：y + height / 2
-        card_x_physical = self.searched_gzh_x + int(self.searched_gzh_width * 0.3)
-        card_y_physical = self.searched_gzh_y + int(self.searched_gzh_height / 2)
+        # 使用 OCR 区域配置计算点击位置（配置为逻辑坐标，pyautogui 使用逻辑坐标）
+        # 正中间偏左侧 1/5：x + width * 0.3；中间 Y：y + height / 2
+        card_x = self.searched_gzh_x + int(self.searched_gzh_width * 0.3)
+        card_y = self.searched_gzh_y + int(self.searched_gzh_height / 2)
         
-        # 转换为逻辑坐标（pyautogui 使用逻辑坐标）
-        card_x = int(card_x_physical / SCREEN_SCALE)
-        card_y = int(card_y_physical / SCREEN_SCALE)
-        
-        print(f"  → 点击卡片位置: ({card_x}, {card_y}) [物理像素: ({card_x_physical}, {card_y_physical})]")
+        print(f"  → 点击卡片位置(逻辑): ({card_x}, {card_y})")
         
         # 添加随机偏移
         offset_x = random.randint(-3, 3)
@@ -886,8 +944,8 @@ class AutoFollower:
             print(f"  --- 关注视频号 ---")
             # 7. 点击视频号标签
             if self.click_shipinghao_tab():
-                # 7.5 OCR 验证第一个卡片名称是否匹配
-                if self.verify_gzh_card_name(user_name):
+                # 7.5 OCR 验证第一个卡片名称是否匹配（与公众号共用同一区域配置，若不准确可考虑单独配置）
+                if self.verify_gzh_card_name(user_name, context="视频号"):
                     # 8. 点击第一个卡片
                     if self.click_first_card():
                         # 9. 点击关注按钮
@@ -948,27 +1006,26 @@ class AutoFollower:
         print("\n正在截图并标记区域...")
         
         try:
-            # 截取全屏（返回物理像素分辨率）
+            # 截取全屏（Retina 下为物理像素分辨率）
             full_screen = pyautogui.screenshot()
             draw = ImageDraw.Draw(full_screen)
             
-            # 配置是物理像素，直接使用（因为截图也是物理像素）
-            px = self.searched_gzh_x
-            py = self.searched_gzh_y
-            pw = self.searched_gzh_width
-            ph = self.searched_gzh_height
+            # 配置为逻辑坐标，全屏截图为物理像素，需乘以 SCREEN_SCALE 再绘制
+            px = int(self.searched_gzh_x * SCREEN_SCALE)
+            py = int(self.searched_gzh_y * SCREEN_SCALE)
+            pw = int(self.searched_gzh_width * SCREEN_SCALE)
+            ph = int(self.searched_gzh_height * SCREEN_SCALE)
             
-            # 绘制红色矩形框标记 OCR 区域（物理像素坐标）
+            # 绘制红色矩形框标记 OCR 区域（换算到物理像素以匹配截图）
             draw.rectangle(
                 [(px, py), (px + pw, py + ph)],
                 outline="red",
-                width=6  # 加粗线条，因为是物理像素
+                width=6
             )
             
             # 添加文字标注
             try:
                 from PIL import ImageFont
-                # 尝试加载系统字体（字体大小也用物理像素）
                 font = ImageFont.truetype("/System/Library/Fonts/PingFang.ttc", 48)
             except Exception:
                 font = ImageFont.load_default()
@@ -984,11 +1041,11 @@ class AutoFollower:
             
             print(f"\n✓ 验证截图已保存: {output_path}")
             print("\n请检查截图中的标注位置是否正确：")
-            print(f"  - 红色框: 公众号卡片名称 OCR 识别区域")
-            print(f"  - 区域配置: x={self.searched_gzh_x}, y={self.searched_gzh_y}, "
+            print(f"  - 红色框: 公众号/视频号第一个卡片名称 OCR 识别区域（逻辑坐标 ×{SCREEN_SCALE} 后绘制）")
+            print(f"  - 区域配置(逻辑坐标): x={self.searched_gzh_x}, y={self.searched_gzh_y}, "
                   f"w={self.searched_gzh_width}, h={self.searched_gzh_height}")
             config_file = "calibration-win.json" if platform.system() == "Windows" else "calibration.json"
-            print(f"\n如需调整，请编辑 config/{config_file} 中的 searched_gongzhonghao_* 配置")
+            print(f"\n如需调整，请编辑 config/{config_file} 中的 searched_gongzhonghao_*（逻辑坐标，与屏幕“点”一致）")
             
             # 同时进行 OCR 识别测试
             if self._ocr:

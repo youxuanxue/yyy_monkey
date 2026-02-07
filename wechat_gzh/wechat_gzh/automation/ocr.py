@@ -33,13 +33,13 @@ class OCRReader:
             self._ocr = None
             print("    ⚠ CnOcr 未安装，OCR 功能不可用")
         
-        # 公众号名称区域（屏幕绝对坐标，物理像素）
+        # 公众号名称区域（逻辑坐标，与 pyautogui.position() 一致）
         self.account_name_x = 340
         self.account_name_y = 10
         self.account_name_width = 200
         self.account_name_height = 40
         
-        # 文章标题区域（屏幕绝对坐标，物理像素）
+        # 文章标题区域（逻辑坐标）
         self.article_title_x = 700
         self.article_title_y = 200
         self.article_title_width = 400
@@ -83,23 +83,21 @@ class OCRReader:
         height: int
     ) -> Image.Image:
         """
-        截取屏幕指定区域（配置坐标需要除以缩放比例）
+        截取屏幕指定区域。配置为逻辑坐标。
+        Mac Retina 下全屏截图为物理像素，screenshot(region=) 的 region 与截图同坐标系，故用物理坐标。
         
         Args:
-            x: 左上角 X 坐标（物理像素）
-            y: 左上角 Y 坐标（物理像素）
-            width: 宽度（物理像素）
-            height: 高度（物理像素）
+            x, y: 左上角逻辑坐标（与 pyautogui.position() 一致）
+            width, height: 宽高（逻辑）
             
         Returns:
             PIL Image 对象
         """
-        # 配置中的坐标是物理像素，需要转换为逻辑坐标
-        logical_x = int(x / SCREEN_SCALE)
-        logical_y = int(y / SCREEN_SCALE)
-        logical_width = int(width / SCREEN_SCALE)
-        logical_height = int(height / SCREEN_SCALE)
-        return pyautogui.screenshot(region=(logical_x, logical_y, logical_width, logical_height))
+        physical_x = int(x * SCREEN_SCALE)
+        physical_y = int(y * SCREEN_SCALE)
+        physical_width = int(width * SCREEN_SCALE)
+        physical_height = int(height * SCREEN_SCALE)
+        return pyautogui.screenshot(region=(physical_x, physical_y, physical_width, physical_height))
     
     def recognize_text(self, image: Image.Image) -> str:
         """
@@ -129,10 +127,13 @@ class OCRReader:
             print(f"    OCR 识别出错: {e}")
             return ""
     
-    def get_account_name(self) -> str:
+    def get_account_name(self, save_crop_path: Optional[str] = None) -> str:
         """
         获取公众号名称（使用屏幕绝对坐标）
-            
+        
+        Args:
+            save_crop_path: 可选，保存本次 OCR 裁剪图到此路径，便于核对识别区域与结果
+        
         Returns:
             公众号名称，如果识别失败返回空字符串
         """
@@ -145,6 +146,10 @@ class OCRReader:
                 self.account_name_height
             )
             
+            # 调试：保存实际送入 OCR 的裁剪图
+            if save_crop_path:
+                image.save(save_crop_path)
+            
             # 识别文字
             text = self.recognize_text(image)
             
@@ -156,6 +161,42 @@ class OCRReader:
             
         except Exception as e:
             print(f"    OCR 识别公众号名称出错: {e}")
+            return ""
+    
+    def get_account_name_in_list_row(
+        self,
+        row_index: int,
+        list_x: int,
+        list_y_start: int,
+        item_height: int,
+    ) -> str:
+        """
+        在公众号列表页获取指定行（第 row_index 行）的公众号名称。
+        列表页每行名称区域：在列表项左侧，使用与 account_name 相同的宽高。
+        
+        Args:
+            row_index: 行索引（从 0 开始）
+            list_x: 列表点击 X（navigator.account_list_x）
+            list_y_start: 列表起始 Y（navigator.account_list_y_start）
+            item_height: 每行高度（navigator.account_item_height）
+            
+        Returns:
+            该行公众号名称，识别失败返回空字符串
+        """
+        try:
+            # 列表页名称在每行左侧，使用与公众号名称相同的宽高
+            x = list_x - self.account_name_width - 20
+            y = list_y_start + row_index * item_height + 15
+            image = self.capture_region(
+                x, y,
+                self.account_name_width,
+                self.account_name_height,
+            )
+            text = self.recognize_text(image)
+            lines = [line.strip() for line in text.split('\n') if line.strip()]
+            return lines[0] if lines else ""
+        except Exception as e:
+            print(f"    OCR 列表行 {row_index} 识别出错: {e}")
             return ""
     
     def get_article_title(self, save_debug: bool = True) -> str:

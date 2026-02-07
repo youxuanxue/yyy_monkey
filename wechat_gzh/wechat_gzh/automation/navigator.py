@@ -99,33 +99,27 @@ class Navigator:
     def click_account_at_index(self, index: int) -> None:
         """
         点击公众号列表中指定索引的公众号
-        
+
         Args:
             index: 公众号在可见列表中的索引（从 0 开始）
         """
-        # 配置中的坐标是物理像素（截图坐标），需要转换为逻辑坐标
-        click_x = int(self.account_list_x / SCREEN_SCALE)
-        click_y = int((self.account_list_y_start + (index * self.account_item_height)) / SCREEN_SCALE)
-        # 先移动鼠标到目标位置（让用户看到鼠标移动）
+        # 配置为逻辑坐标（与 pyautogui.position() 一致），直接用于 moveTo/click
+        click_x = self.account_list_x
+        click_y = self.account_list_y_start + (index * self.account_item_height)
         pyautogui.moveTo(click_x, click_y, duration=0.3)
         time.sleep(0.2)
-        # 点击
         pyautogui.click()
-        print(f"    → 配置坐标: ({self.account_list_x}, {self.account_list_y_start + (index * self.account_item_height)})")
-        print(f"    → 实际点击: ({click_x}, {click_y}) [缩放 {SCREEN_SCALE}x]")
+        print(f"    → 点击坐标（逻辑）: ({click_x}, {click_y})")
     
     def click_first_article(self) -> None:
         """点击当前公众号的第一篇（最新）文章"""
-        # 配置中的坐标是物理像素（截图坐标），需要转换为逻辑坐标
-        click_x = int(self.article_area_x / SCREEN_SCALE)
-        click_y = int(self.article_area_y / SCREEN_SCALE)
-        # 先移动鼠标到目标位置
+        # 配置为逻辑坐标，直接用于 moveTo/click
+        click_x = self.article_area_x
+        click_y = self.article_area_y
         pyautogui.moveTo(click_x, click_y, duration=0.3)
         time.sleep(0.2)
-        # 点击
         pyautogui.click()
-        print(f"    → 配置坐标: ({self.article_area_x}, {self.article_area_y})")
-        print(f"    → 实际点击: ({click_x}, {click_y}) [缩放 {SCREEN_SCALE}x]")
+        print(f"    → 点击坐标（逻辑）: ({click_x}, {click_y})")
     
     def scroll_account_list(self, direction: str = "down", amount: int = None) -> None:
         """
@@ -135,10 +129,10 @@ class Navigator:
             direction: 滚动方向，"up" 或 "down"
             amount: 滚动量
         """
-        # 使用屏幕绝对坐标（配置值除以缩放比例）
-        scroll_x = int(self.account_list_x / SCREEN_SCALE)
-        scroll_y = int((self.account_list_y_start + 100) / SCREEN_SCALE)
-        
+        # 配置为逻辑坐标，直接用于 moveTo
+        scroll_x = self.account_list_x
+        scroll_y = self.account_list_y_start + 100
+
         pyautogui.moveTo(scroll_x, scroll_y)
         time.sleep(0.2)
         
@@ -162,17 +156,16 @@ class Navigator:
         Args:
             direction: 滚动方向，"up" 或 "down"
         """
-        # 使用屏幕绝对坐标
-        scroll_x = int(self.account_list_x / SCREEN_SCALE)
-        scroll_y = int((self.account_list_y_start + 100) / SCREEN_SCALE)
-        
+        # 配置为逻辑坐标，直接用于 moveTo
+        scroll_x = self.account_list_x
+        scroll_y = self.account_list_y_start + 100
+
         pyautogui.moveTo(scroll_x, scroll_y)
         time.sleep(0.1)
-        
-        # 根据 account_item_height 计算需要滚动的次数
+
+        # 根据 account_item_height（逻辑）计算需要滚动的次数
         # pyautogui.scroll 的单位不是像素，经验值：约 3-4 个单位 ≈ 一个公众号高度
-        # 这里使用小步滚动来提高精度
-        target_pixels = self.account_item_height / SCREEN_SCALE  # 转换为逻辑像素
+        target_pixels = self.account_item_height
         
         if platform.system() == "Windows":
              # Windows 下 scroll 是以 click 为单位 (1 click = 120)，需要较大值

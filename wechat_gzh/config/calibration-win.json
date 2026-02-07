@@ -30,7 +30,9 @@
     "searched_gongzhonghao_y": 360,
     "searched_gongzhonghao_width": 250,
     "searched_gongzhonghao_height": 50,
-    "_searched_gongzhonghao": "搜一搜下面的第一张公众号卡片的位置：(x, y) 是左上角，width/height 是宽高"
+    "_searched_gongzhonghao": "搜一搜下面的第一张公众号卡片的位置：(x, y) 是左上角，width/height 是宽高",
+    "account_tab_y_max": 180,
+    "_account_tab_y_max": "账号标签 Y 上限(逻辑坐标)，超过则视为位置错误"
   },
   "calibrated": true
 }

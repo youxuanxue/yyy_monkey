@@ -127,11 +127,11 @@ class CalibrationManager:
         filename = self.WIN_FILE if is_win else self.DEFAULT_FILE
         
         save_data = {
-            "_说明": f"校准配置文件 ({'Windows' if is_win else 'Mac/Linux'}) - 所有坐标都是相对于微信窗口左上角的偏移量",
+            "_说明": f"校准配置文件 ({'Windows' if is_win else 'Mac/Linux'}) - 所有坐标为逻辑坐标（与 pyautogui.position() 一致，Retina 下非物理像素）",
             "_用法": f"可手动编辑此文件，然后用 -v 参数验证: uv run python -m wechat_gzh.auto_comment -v",
             
             "navigator": {
-                "_说明": "导航器配置 - 控制点击公众号和文章的位置（屏幕绝对坐标）",
+                "_说明": "导航器配置 - 控制点击公众号和文章的位置（逻辑坐标）",
                 "account_list_x": self._data.navigator.account_list_x,
                 "_account_list_x": "公众号列表项的 X 屏幕坐标",
                 "account_list_y_start": self._data.navigator.account_list_y_start,
@@ -145,7 +145,7 @@ class CalibrationManager:
             },
             
             "ocr": {
-                "_说明": "OCR 识别区域配置 - 控制文字识别的截图区域（屏幕绝对坐标）",
+                "_说明": "OCR 识别区域配置 - 控制文字识别的截图区域（逻辑坐标）",
                 "account_name_x": self._data.ocr.account_name_x,
                 "account_name_y": self._data.ocr.account_name_y,
                 "account_name_width": self._data.ocr.account_name_width,

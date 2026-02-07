@@ -9,6 +9,8 @@ from typing import Optional, Tuple, TYPE_CHECKING
 import pyautogui
 from PIL import Image, ImageDraw, ImageFont
 
+from .navigator import SCREEN_SCALE
+
 if TYPE_CHECKING:
     from .calibration import CalibrationData
 
@@ -232,35 +234,36 @@ class CalibrationVisualizer:
         
         nav = calibration.navigator
         ocr = calibration.ocr
+        # 截图为物理像素（Retina 2x），校准为逻辑坐标，需乘以 SCREEN_SCALE 再绘制
+        s = SCREEN_SCALE
         
         # 1. 绘制公众号列表位置（前3个位置）
         color = COLORS["navigator_account"]
         for i in range(3):
-            x = offset_x + nav.account_list_x
-            y = offset_y + nav.account_list_y_start + (i * nav.account_item_height)
-            # 绘制点和序号
+            x = offset_x + int(nav.account_list_x * s)
+            y = offset_y + int((nav.account_list_y_start + (i * nav.account_item_height)) * s)
             self._draw_point(draw, x, y, color, str(i + 1))
         
         # 2. 绘制文章位置
         color = COLORS["navigator_article"]
-        x = offset_x + nav.article_area_x
-        y = offset_y + nav.article_area_y
+        x = offset_x + int(nav.article_area_x * s)
+        y = offset_y + int(nav.article_area_y * s)
         self._draw_point(draw, x, y, color, "文章")
         
         # 3. 绘制公众号名称 OCR 区域
         color = COLORS["ocr_name"]
-        x1 = offset_x + ocr.account_name_x
-        y1 = offset_y + ocr.account_name_y
-        x2 = x1 + ocr.account_name_width
-        y2 = y1 + ocr.account_name_height
+        x1 = offset_x + int(ocr.account_name_x * s)
+        y1 = offset_y + int(ocr.account_name_y * s)
+        x2 = offset_x + int((ocr.account_name_x + ocr.account_name_width) * s)
+        y2 = offset_y + int((ocr.account_name_y + ocr.account_name_height) * s)
         self._draw_rect(draw, x1, y1, x2, y2, color, "名称")
         
         # 4. 绘制文章标题 OCR 区域
         color = COLORS["ocr_title"]
-        x1 = offset_x + ocr.article_title_x
-        y1 = offset_y + ocr.article_title_y
-        x2 = x1 + ocr.article_title_width
-        y2 = y1 + ocr.article_title_height
+        x1 = offset_x + int(ocr.article_title_x * s)
+        y1 = offset_y + int(ocr.article_title_y * s)
+        x2 = offset_x + int((ocr.article_title_x + ocr.article_title_width) * s)
+        y2 = offset_y + int((ocr.article_title_y + ocr.article_title_height) * s)
         self._draw_rect(draw, x1, y1, x2, y2, color, "标题")
         
         return image

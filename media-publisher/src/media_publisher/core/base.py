@@ -15,6 +15,11 @@ class Platform(Enum):
     """支持的平台枚举"""
     WECHAT = "wechat"
     YOUTUBE = "youtube"
+    MEDIUM = "medium"
+    TWITTER = "twitter"
+    DEVTO = "devto"
+    TIKTOK = "tiktok"
+    INSTAGRAM = "instagram"
 
 
 @dataclass
@@ -206,3 +211,154 @@ class Publisher(ABC):
     def __exit__(self, exc_type, exc_val, exc_tb):
         """上下文管理器出口"""
         pass
+
+
+# ============================================================
+# 文章发布任务基类（新增 - 适用于 Medium / Dev.to / Twitter）
+# ============================================================
+
+@dataclass
+class ArticlePublishTask(ABC):
+    """
+    文章发布任务基类
+    
+    适用于不需要视频的文章类平台（Medium、Dev.to、Twitter）。
+    与 PublishTask 并列，不要求 video_path。
+    """
+    title: str = ""
+    
+    @abstractmethod
+    def validate(self):
+        """验证任务参数是否有效"""
+        pass
+
+
+@dataclass
+class MediumPublishTask(ArticlePublishTask):
+    """Medium 发布任务"""
+    content: str = ""  # Markdown 正文
+    tags: List[str] = field(default_factory=list)  # 最多 5 个
+    canonical_url: Optional[str] = None
+    publish_status: str = "draft"  # "draft", "public", "unlisted"
+    
+    def validate(self):
+        """验证 Medium 任务参数"""
+        if not self.title:
+            raise ValueError("Medium 标题不能为空")
+        if not self.content:
+            raise ValueError("Medium 文章内容不能为空")
+        if len(self.tags) > 5:
+            raise ValueError(f"Medium 标签最多 5 个，当前 {len(self.tags)} 个")
+        if self.publish_status not in ["draft", "public", "unlisted"]:
+            raise ValueError(f"无效的发布状态: {self.publish_status}")
+
+
+@dataclass
+class DevToPublishTask(ArticlePublishTask):
+    """Dev.to 发布任务"""
+    body_markdown: str = ""  # Markdown 正文
+    tags: List[str] = field(default_factory=list)  # 最多 4 个，全小写
+    series: Optional[str] = None  # 系列名称
+    canonical_url: Optional[str] = None
+    published: bool = False
+    
+    def validate(self):
+        """验证 Dev.to 任务参数"""
+        if not self.title:
+            raise ValueError("Dev.to 标题不能为空")
+        if not self.body_markdown:
+            raise ValueError("Dev.to 文章内容不能为空")
+        if len(self.tags) > 4:
+            raise ValueError(f"Dev.to 标签最多 4 个，当前 {len(self.tags)} 个")
+        for tag in self.tags:
+            if tag != tag.lower():
+                raise ValueError(f"Dev.to 标签必须为小写: {tag}")
+            if ' ' in tag:
+                raise ValueError(f"Dev.to 标签不能包含空格: {tag}")
+
+
+@dataclass
+class TwitterPublishTask(ArticlePublishTask):
+    """Twitter/X Thread 发布任务"""
+    tweets: List[str] = field(default_factory=list)
+    hashtags: List[str] = field(default_factory=list)
+    
+    @staticmethod
+    def _twitter_char_count(text: str) -> int:
+        """
+        计算 Twitter 实际字符数
+        
+        Twitter 将所有 URL 缩短为 23 字符 (t.co)，
+        因此实际计数需要将 URL 替换为 23 字符占位符。
+        """
+        import re
+        # 匹配 URL 模式
+        url_pattern = re.compile(r'https?://\S+')
+        adjusted = url_pattern.sub('x' * 23, text)
+        return len(adjusted)
+    
+    def validate(self):
+        """
+        验证 Twitter 任务参数
+        
+        超长推文仅发出警告（不阻断），实际字符限制由 Twitter API 在发布时校验。
+        """
+        import logging as _logging
+        _logger = _logging.getLogger(__name__)
+        
+        if not self.tweets:
+            raise ValueError("Twitter Thread 至少需要一条推文")
+        for i, tweet in enumerate(self.tweets):
+            char_count = self._twitter_char_count(tweet)
+            if char_count > 280:
+                _logger.warning(
+                    f"第 {i+1} 条推文超过 280 字符: {char_count} 字符, "
+                    f"发布时可能需要缩短"
+                )
+
+
+@dataclass
+class TikTokPublishTask(PublishTask):
+    """TikTok 发布任务"""
+    privacy: str = "public"  # "public", "friends", "private"
+    
+    def validate(self):
+        """验证 TikTok 任务参数"""
+        super().validate()
+        if self.privacy not in ["public", "friends", "private"]:
+            raise ValueError(f"无效的隐私设置: {self.privacy}")
+    
+    @classmethod
+    def from_json(cls, video_path: Path, json_data: dict) -> "TikTokPublishTask":
+        """从 JSON 数据创建 TikTok 发布任务"""
+        tiktok_data = json_data.get('tiktok', {})
+        return cls(
+            video_path=video_path,
+            description=tiktok_data.get('description', ''),
+            privacy=tiktok_data.get('privacy', 'public'),
+        )
+
+
+@dataclass
+class InstagramPublishTask(PublishTask):
+    """Instagram Reels 发布任务"""
+    caption: str = ""
+    video_url: Optional[str] = None  # 公网视频 URL（Graph API 需要）
+    privacy: str = "public"
+    
+    def validate(self):
+        """验证 Instagram 任务参数"""
+        if not self.video_url and not self.video_path.exists():
+            raise FileNotFoundError(
+                f"视频文件不存在且未提供公网 URL: {self.video_path}"
+            )
+    
+    @classmethod
+    def from_json(cls, video_path: Path, json_data: dict) -> "InstagramPublishTask":
+        """从 JSON 数据创建 Instagram 发布任务"""
+        ig_data = json_data.get('instagram', {})
+        return cls(
+            video_path=video_path,
+            caption=ig_data.get('caption', ''),
+            privacy=ig_data.get('privacy', 'public'),
+        )

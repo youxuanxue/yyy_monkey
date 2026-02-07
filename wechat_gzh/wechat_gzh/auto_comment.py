@@ -14,6 +14,7 @@
 """
 
 import argparse
+import json
 import os
 import platform
 import signal
@@ -29,7 +30,7 @@ import pyautogui
 from PIL import Image
 
 from .config import COMMENT_TEXT, CONFIG_DIR, HISTORY_FILE, LOG_DIR, TIMING
-from .automation.navigator import Navigator
+from .automation.navigator import Navigator, SCREEN_SCALE
 from .automation.commenter import Commenter
 from .automation.ocr import OCRReader
 from .automation.calibration import CalibrationManager, CalibrationData
@@ -237,8 +238,8 @@ class AutoCommentBot:
         Args:
             step_name: 步骤名称（用于文件名）
             index: 当前公众号索引
-            mark_position: 可选，要标注的点击位置 (x, y) 物理像素坐标
-            mark_regions: 可选，要标注的区域列表 [(x, y, w, h, color, label), ...]
+            mark_position: 可选，要标注的点击位置 (x, y) 逻辑坐标
+            mark_regions: 可选，要标注的区域列表 [(x, y, w, h, color, label), ...] 逻辑坐标
             enable_debug_screenshot: 是否启用调试截图（默认 False，需要显式传入 True 才保存）
             base_image: 可选，基础图片（如果不传则重新截图）
             
@@ -262,32 +263,32 @@ class AutoCommentBot:
             
         draw = ImageDraw.Draw(screenshot)
         line_width = 3
+        # 截图为物理像素（Retina 2x），传入坐标为逻辑，需乘以 SCREEN_SCALE 再绘制
+        s = SCREEN_SCALE
         
         # 标注点击位置（红色十字）
         if mark_position:
             x, y = mark_position
+            px, py = int(x * s), int(y * s)
             cross_size = 30
-            # 红色十字
-            draw.line([(x - cross_size, y), (x + cross_size, y)], fill='red', width=line_width)
-            draw.line([(x, y - cross_size), (x, y + cross_size)], fill='red', width=line_width)
-            # 画圆圈
+            draw.line([(px - cross_size, py), (px + cross_size, py)], fill='red', width=line_width)
+            draw.line([(px, py - cross_size), (px, py + cross_size)], fill='red', width=line_width)
             circle_radius = 20
             draw.ellipse(
-                [(x - circle_radius, y - circle_radius), (x + circle_radius, y + circle_radius)],
+                [(px - circle_radius, py - circle_radius), (px + circle_radius, py + circle_radius)],
                 outline='red', width=line_width
             )
-            # 添加坐标文字
-            draw.text((x + 25, y - 25), f"点击({x}, {y})", fill='red')
+            draw.text((px + 25, py - 25), f"点击({x}, {y})", fill='red')
             self.logger.info(f"  📍 标注点击位置: ({x}, {y})")
         
         # 标注区域（矩形框）
         if mark_regions:
             for region in mark_regions:
                 x, y, w, h, color, label = region
-                # 画矩形框
-                draw.rectangle([(x, y), (x + w, y + h)], outline=color, width=line_width)
-                # 添加标签（直接显示传入的标签）
-                draw.text((x, y - 20), label, fill=color)
+                px, py = int(x * s), int(y * s)
+                pw, ph = int(w * s), int(h * s)
+                draw.rectangle([(px, py), (px + pw, py + ph)], outline=color, width=line_width)
+                draw.text((px, py - 20), label, fill=color)
                 self.logger.info(f"  📐 标注区域: {label}")
         
         screenshot.save(filepath)
@@ -702,6 +703,157 @@ class AutoCommentBot:
         # 打印汇总
         self.print_summary()
     
+    def run_list_mode(self, output_path: str) -> None:
+        """
+        列表模式：通过点击公众号列表位置进入公众号，用 OCR 公众号名称区域识别名称，滚动到底部后保存到 JSON。
+        
+        策略：每次点击列表第一项 -> 进入公众号 -> 识别 OCR 公众号名称区域作为名字 -> 返回列表 -> 滚动一行；
+        当连续 3 次识别到相同名称时认为到底，保存结果。（与 process_single_account 中识别公众号名称的方式一致）
+        
+        Args:
+            output_path: 保存路径，如 config/followeds_20260207_mia.json
+        """
+        self.logger.info("=" * 60)
+        self.logger.info("公众号列表页 - 识别所有公众号名称（list 模式）")
+        self.logger.info("=" * 60)
+        
+        if not self.check_prerequisites():
+            return
+        self.calibrate()
+        
+        print("\n请确保微信已打开并显示公众号列表（订阅号/服务号列表）。")
+        print("5 秒后开始识别，请切换到微信窗口...")
+        for i in range(5, 0, -1):
+            self.logger.info(f"  {i}...")
+            time.sleep(1)
+        
+        if threading.current_thread() is threading.main_thread():
+            install_graceful_handler()
+        
+        names_seen = set()
+        all_names_ordered = []
+        prev_first_name = None
+        consecutive_same = 0
+        scroll_count = 0
+        max_scrolls = 200
+        at_bottom = False
+        
+        def _list_mode_recognize_one(list_index: int, debug_index: int) -> str:
+            """点击列表指定项 -> 进入公众号 -> 截图裁 OCR 区域 -> 识别名称 -> 返回列表。返回识别到的公众号名。"""
+            self.navigator.click_account_at_index(list_index)
+            time.sleep(TIMING["page_load_wait"])
+            base_image = pyautogui.screenshot()
+            px = int(self.ocr.account_name_x * SCREEN_SCALE)
+            py = int(self.ocr.account_name_y * SCREEN_SCALE)
+            pw = int(self.ocr.account_name_width * SCREEN_SCALE)
+            ph = int(self.ocr.account_name_height * SCREEN_SCALE)
+            crop_image = base_image.crop((px, py, px + pw, py + ph))
+            if self.enable_debug_screenshot:
+                ocr_account_region = (
+                    self.ocr.account_name_x,
+                    self.ocr.account_name_y,
+                    self.ocr.account_name_width,
+                    self.ocr.account_name_height,
+                    'cyan',
+                    f'OCR公众号({self.ocr.account_name_x},{self.ocr.account_name_y} {self.ocr.account_name_width}x{self.ocr.account_name_height})'
+                )
+                self._save_debug_screenshot(
+                    "list_ocr_region",
+                    debug_index,
+                    mark_regions=[ocr_account_region],
+                    enable_debug_screenshot=True,
+                    base_image=base_image,
+                )
+                crop_filename = f"list_ocr_crop_{debug_index:02d}_{datetime.now().strftime('%H%M%S')}.png"
+                crop_path = os.path.join(LOG_DIR, crop_filename)
+                crop_image.save(crop_path)
+                self.logger.info(f"  OCR 裁剪图已保存: {crop_filename}")
+            text = self.ocr.recognize_text(crop_image)
+            lines = [line.strip() for line in text.split('\n') if line.strip()]
+            name = lines[0] if lines else ""
+        
+            return name
+        
+        try:
+            while True:
+                interrupt_handler.check()
+                if scroll_count >= max_scrolls:
+                    self.logger.info("已达到最大滚动次数，停止")
+                    break
+                
+                self.logger.info(f"点击第 1 个公众号...")
+                first_name = _list_mode_recognize_one(0, scroll_count)
+                if first_name:
+                    self.logger.info(f"  识别到公众号: 【{first_name}】")
+                
+                # 检测是否到达底部：连续 3 次第一项为同一公众号
+                if first_name and first_name == prev_first_name:
+                    consecutive_same += 1
+                    self.logger.info(f"  第一项重复【{first_name}】（连续 {consecutive_same} 次）")
+                    if consecutive_same >= 3:
+                        self.logger.info("已到达列表底部，停止滚动")
+                        at_bottom = True
+                        break
+                else:
+                    consecutive_same = 0
+                prev_first_name = first_name
+                
+                if first_name and first_name not in names_seen:
+                    names_seen.add(first_name)
+                    all_names_ordered.append(first_name)
+                
+                scroll_count += 1
+                self.logger.info(f"滚动列表（第 {scroll_count} 次）...")
+                self.navigator.scroll_account_list_by_one("down")
+                time.sleep(0.8)
+            
+            # 阶段2：到达底部后，逐项处理剩余可见公众号（index 1, 2, ...）
+            if at_bottom:
+                self.logger.info("\n" + "=" * 40)
+                self.logger.info("阶段2：逐项处理剩余可见公众号（位置 2、3、4...）")
+                self.logger.info("=" * 40)
+                visible_remaining = 7
+                for i in range(1, visible_remaining + 1):
+                    interrupt_handler.check()
+                    self.logger.info(f"点击第 {i + 1} 个公众号...")
+                    name = _list_mode_recognize_one(i, scroll_count + i)
+                    if name:
+                        self.logger.info(f"  识别到公众号: 【{name}】")
+                        if name not in names_seen:
+                            names_seen.add(name)
+                            all_names_ordered.append(name)
+                    time.sleep(0.3)
+        
+        except KeyboardInterrupt:
+            self.logger.info("\n用户中断，停止识别")
+        
+        # 保存为与 followees 兼容的格式：[{"user_name": "xxx"}, ...]
+        out_data = [{"user_name": n} for n in all_names_ordered]
+        out_file = Path(output_path)
+        out_file.parent.mkdir(parents=True, exist_ok=True)
+        # 先读取旧数据，合并、去重，然后写回文件
+        old_data = []
+        if out_file.exists():
+            with open(out_file, "r", encoding="utf-8") as f:
+                try:
+                    old_data = json.load(f)
+                except Exception:
+                    old_data = []
+        # 合并已有和新数据
+        merged_names = {}
+        for entry in old_data + out_data:
+            user_name = entry.get("user_name")
+            if user_name:
+                merged_names[user_name] = {"user_name": user_name}
+        merged_data = list(merged_names.values())
+        with open(out_file, "w", encoding="utf-8") as f:
+            json.dump(merged_data, f, ensure_ascii=False, indent=2)
+        print("\n" + "=" * 60)
+        print(f"列表模式完成，共识别 {len(all_names_ordered)} 个公众号")
+        print(f"已保存到: {out_file.resolve()}")
+        print("=" * 60)
+        self.logger.info(f"列表模式完成，已保存到 {out_file}")
+    
     def _update_stats(self, result: dict) -> None:
         """
         更新统计信息
@@ -779,6 +931,7 @@ def parse_args():
   uv run python -m wechat_gzh.auto_comment           # 正常运行
   uv run python -m wechat_gzh.auto_comment -v        # 仅验证校准配置（生成标注截图）
   uv run python -m wechat_gzh.auto_comment -n 10     # 最多处理 10 个公众号
+  uv run python -m wechat_gzh.auto_comment --mode list --list-output config/followeds_20260207_mia.json  # 列表模式
         """
     )
     
@@ -786,6 +939,20 @@ def parse_args():
         "-v", "--verify",
         action="store_true",
         help="仅验证校准配置（生成标注截图后退出，不执行自动留言）"
+    )
+    
+    parser.add_argument(
+        "--mode",
+        choices=["comment", "list"],
+        default="comment",
+        help="运行模式：comment=自动留言，list=识别公众号列表页所有公众号名称并保存（默认：comment）"
+    )
+    
+    parser.add_argument(
+        "--list-output",
+        type=str,
+        default="config/followeds_20260207_mia.json",
+        help="list 模式下保存结果的 JSON 路径（默认：config/followeds_20260207_mia.json）"
     )
     
     parser.add_argument(
@@ -823,10 +990,13 @@ def main():
     
     if args.verify:
         print("模式：仅验证校准配置（生成标注截图）")
+    elif args.mode == "list":
+        print("模式：列表模式（识别公众号列表页所有公众号名称并保存）")
+        print(f"输出：{args.list_output}")
     else:
-        print("模式：正常运行")
+        print("模式：正常运行（自动留言）")
     
-    if args.max_accounts > 0 and not args.verify:
+    if args.max_accounts > 0 and not args.verify and args.mode != "list":
         print(f"限制：最多处理 {args.max_accounts} 个公众号")
     
     print()
@@ -851,6 +1021,11 @@ def main():
         # 仅验证模式
         if args.verify:
             bot.run_verify_only()
+            return 0
+        
+        # 列表模式：识别公众号列表页所有公众号名称并保存
+        if args.mode == "list":
+            bot.run_list_mode(output_path=args.list_output)
             return 0
         
         # 正常运行模式

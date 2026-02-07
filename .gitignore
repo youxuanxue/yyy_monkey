@@ -23,3 +23,8 @@ license.lic
 comment_history.json
 **/.claude/
 .claude/
+
+# 本地凭证，勿提交
+config/youtube_token.json
+config/youtube_credentials.json
+config/youtube_*.json

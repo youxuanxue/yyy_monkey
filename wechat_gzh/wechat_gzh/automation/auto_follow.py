@@ -2,8 +2,9 @@
 自动关注公众号模块
 
 业务流程：
-1. 读取 followees.json 得到用户列表
-2. 倒计时5秒，等用户打开微信搜一搜页面
+1. 从多个 followees_*.json 合并用户列表，并去除当前账号已关注用户（followeds_*_{wechat_account}.json）
+2. 待处理列表保存到 followed_by_followee_{wechat_account}.json，标记 followed/handled
+3. 倒计时5秒，等用户打开微信搜一搜页面
 3. 每个用户执行：
    - 找到搜一搜输入框，输入 user_name，Enter 启动搜索
    - 点击账号
@@ -45,6 +46,13 @@ PROJECT_DIR = MODULE_DIR.parent.parent
 ASSETS_DIR = PROJECT_DIR / "assets"
 CONFIG_DIR = PROJECT_DIR / "config"
 
+# followees 来源文件（多个公众号的关注列表）
+FOLLOWEES_SOURCE_FILES = [
+    "followees_20260207_ririshengjinririfu.json",
+    "followees_20260207_yiqichengzhang.json",
+    "followees_20260207_zhichangluosidao.json",
+]
+
 
 class AutoFollower:
     """自动关注公众号类"""
@@ -82,14 +90,16 @@ class AutoFollower:
     # 搜一搜 logo 图片
     SEARCH_LOGO_IMAGE = "souyisou_logo.png"
     
-    def __init__(self, confidence: float = 0.8):
+    def __init__(self, confidence: float = 0.8, wechat_account: str = "mia"):
         """
         初始化自动关注器
         
         Args:
             confidence: 图像识别置信度 (0-1)
+            wechat_account: 当前微信账号标识，用于选择 followeds 与结果文件（默认 mia）
         """
         self.confidence = confidence
+        self.wechat_account = wechat_account
         
         # 获取平台对应的资源目录
         self.platform = "mac" if platform.system() == "Darwin" else "win"
@@ -145,23 +155,20 @@ class AutoFollower:
     
     def _capture_region(self, x: int, y: int, width: int, height: int) -> Image.Image:
         """
-        截取屏幕指定区域（物理像素坐标）
+        截取屏幕指定区域。配置为逻辑坐标；Retina 下 region 与截图像素一致，需乘以 SCREEN_SCALE。
         
         Args:
-            x: 左上角 X 坐标（物理像素）
-            y: 左上角 Y 坐标（物理像素）
-            width: 宽度（物理像素）
-            height: 高度（物理像素）
+            x, y: 左上角逻辑坐标
+            width, height: 宽高（逻辑）
             
         Returns:
             PIL Image 对象
         """
-        # 配置中的坐标是物理像素，需要转换为逻辑坐标
-        logical_x = int(x / SCREEN_SCALE)
-        logical_y = int(y / SCREEN_SCALE)
-        logical_width = int(width / SCREEN_SCALE)
-        logical_height = int(height / SCREEN_SCALE)
-        return pyautogui.screenshot(region=(logical_x, logical_y, logical_width, logical_height))
+        physical_x = int(x * SCREEN_SCALE)
+        physical_y = int(y * SCREEN_SCALE)
+        physical_width = int(width * SCREEN_SCALE)
+        physical_height = int(height * SCREEN_SCALE)
+        return pyautogui.screenshot(region=(physical_x, physical_y, physical_width, physical_height))
     
     def _recognize_text(self, image: Image.Image) -> str:
         """
@@ -402,26 +409,92 @@ class AutoFollower:
         print(f"  ✗ 未找到 {desc}")
         return None
     
+    def _get_followeds_path(self) -> Optional[Path]:
+        """获取当前账号的已关注列表文件路径（followeds_*_{wechat_account}.json，取最新一份）"""
+        pattern = f"followeds_*_{self.wechat_account}.json"
+        candidates = sorted(CONFIG_DIR.glob(pattern))
+        return candidates[-1] if candidates else None
+
     def load_followees(self) -> List[dict]:
         """
-        加载 followees.json 用户列表
+        从多个 followees 源文件合并用户列表，去除当前账号已关注用户，
+        并合并已保存的 followed/handled 状态，结果写入 followed_by_followee_{wechat_account}.json。
         
         Returns:
-            用户列表
+            用户列表（已去重、已去除当前账号已关注）
         """
-        self._followees_path = CONFIG_DIR / "followees.json"
-        if not self._followees_path.exists():
-            print(f"✗ 未找到 followees.json: {self._followees_path}")
+        # 1. 从多个源文件合并
+        merged: List[dict] = []
+        seen_openid: set = set()
+        for filename in FOLLOWEES_SOURCE_FILES:
+            path = CONFIG_DIR / filename
+            if not path.exists():
+                print(f"⚠ 未找到 {filename}，跳过")
+                continue
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    users = json.load(f)
+            except Exception as e:
+                print(f"⚠ 读取 {filename} 失败: {e}，跳过")
+                continue
+            for u in users:
+                openid = u.get("user_openid")
+                if openid and openid not in seen_openid:
+                    seen_openid.add(openid)
+                    merged.append({
+                        **u,
+                        "followed": u.get("followed", False),
+                        "handled": u.get("handled", False),
+                    })
+            print(f"✓ 从 {filename} 加载 {len(users)} 条")
+        if not merged:
+            print("✗ 未从任何 followees 源文件加载到用户")
+            self._all_users = []
+            self._followees_path = CONFIG_DIR / f"followed_by_followee_{self.wechat_account}.json"
             return []
-        
-        with open(self._followees_path, "r", encoding="utf-8") as f:
-            self._all_users = json.load(f)
-        
-        print(f"✓ 加载了 {len(self._all_users)} 个用户")
+        print(f"✓ 合并去重共 {len(merged)} 人")
+
+        # 2. 去除当前账号已关注用户（按 user_name 匹配 followeds 文件）
+        followeds_path = self._get_followeds_path()
+        followeds_names: set = set()
+        if followeds_path and followeds_path.exists():
+            try:
+                with open(followeds_path, "r", encoding="utf-8") as f:
+                    followeds_list = json.load(f)
+                followeds_names = {item.get("user_name", "").strip() for item in followeds_list if item.get("user_name")}
+                print(f"✓ 从 {followeds_path.name} 读取已关注 {len(followeds_names)} 个用户名，将予以排除")
+            except Exception as e:
+                print(f"⚠ 读取已关注列表失败: {e}，不排除")
+        before = len(merged)
+        merged = [u for u in merged if (u.get("user_name") or "").strip() not in followeds_names]
+        excluded = before - len(merged)
+        if excluded:
+            print(f"✓ 排除当前账号已关注 {excluded} 人，剩余 {len(merged)} 人")
+
+        # 3. 合并已保存的 followed/handled 状态（followed_by_followee_{wechat_account}.json）
+        result_path = CONFIG_DIR / f"followed_by_followee_{self.wechat_account}.json"
+        if result_path.exists():
+            try:
+                with open(result_path, "r", encoding="utf-8") as f:
+                    saved = json.load(f)
+                state_by_openid = {u["user_openid"]: u for u in saved if u.get("user_openid")}
+                for u in merged:
+                    openid = u.get("user_openid")
+                    if openid and openid in state_by_openid:
+                        u["followed"] = state_by_openid[openid].get("followed", False)
+                        u["handled"] = state_by_openid[openid].get("handled", False)
+                print(f"✓ 已合并已保存状态: {result_path.name}")
+            except Exception as e:
+                print(f"⚠ 读取已保存状态失败: {e}，不合并")
+
+        self._followees_path = result_path
+        self._all_users = merged
+        self.save_followees()
+        print(f"✓ 当前待处理列表共 {len(self._all_users)} 人，已保存到 {result_path.resolve()}")
         return self._all_users
-    
+
     def save_followees(self) -> None:
-        """保存 followees.json 用户列表"""
+        """保存用户列表到 followed_by_followee_{wechat_account}.json"""
         if hasattr(self, '_followees_path') and hasattr(self, '_all_users'):
             with open(self._followees_path, "w", encoding="utf-8") as f:
                 json.dump(self._all_users, f, ensure_ascii=False, indent=2)
@@ -807,13 +880,14 @@ class AutoFollower:
             print(f"✗ 验证失败: {e}")
             return False
     
-    def run(self, interval_min: float = 2.0, interval_max: float = 5.0) -> None:
+    def run(self, interval_min: float = 2.0, interval_max: float = 5.0, max_users: Optional[int] = None) -> None:
         """
         运行自动关注流程
         
         Args:
             interval_min: 用户间最小间隔（秒）
             interval_max: 用户间最大间隔（秒）
+            max_users: 最多处理的用户数，不传则不限制
         """
         # 加载用户列表
         all_users = self.load_followees()
@@ -825,6 +899,9 @@ class AutoFollower:
         handled_count = len(all_users) - len(users)
         print(f"已跳过 {handled_count} 个已处理用户")
         
+        if max_users is not None and max_users > 0:
+            users = users[:max_users]
+            print(f"本次最多处理 {max_users} 个用户")
         print(f"共 {len(users)} 个待处理")
         
         if not users:
@@ -904,10 +981,24 @@ def main():
         action="store_true",
         help="仅验证模式：截图并标记 OCR 识别区域后退出"
     )
+    parser.add_argument(
+        "-w", "--wechat",
+        type=str,
+        default="mia",
+        dest="wechat_account",
+        help="当前微信账号标识，用于 followeds 与结果文件（默认 mia）"
+    )
+    parser.add_argument(
+        "-n", "--max-users",
+        type=int,
+        default=50,
+        metavar="N",
+        help="最多处理的用户数，不传则不限制"
+    )
     
     args = parser.parse_args()
     
-    follower = AutoFollower(confidence=args.confidence)
+    follower = AutoFollower(confidence=args.confidence, wechat_account=args.wechat_account)
     
     # 仅验证模式
     if args.verify:
@@ -917,7 +1008,8 @@ def main():
     # 正常运行模式（只处理 handled=false 的用户）
     follower.run(
         interval_min=args.interval_min,
-        interval_max=args.interval_max
+        interval_max=args.interval_max,
+        max_users=args.max_users
     )
 
 

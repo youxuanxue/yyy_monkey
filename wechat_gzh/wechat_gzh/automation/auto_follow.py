@@ -687,7 +687,132 @@ class AutoFollower:
         modifier = "command" if self.platform == "mac" else "ctrl"
         pyautogui.hotkey(modifier, "w")
         print("  → 关闭卡片 (Cmd+W)")
-        time.sleep(0.5)
+        time.sleep(1.5)  # 增加延迟，确保卡片完全关闭
+    
+    def _locate_box(self, image_name: str, region: Optional[Tuple[int, int, int, int]] = None) -> Optional[Tuple[int, int, int, int]]:
+        """
+        在屏幕上查找图片，返回完整的 box 信息（逻辑坐标）
+        
+        Args:
+            image_name: 图片文件名
+            region: 搜索区域 (x, y, width, height)
+            
+        Returns:
+            (left, top, width, height) 逻辑坐标，未找到返回 None
+        """
+        img_path = self.asset_dir / image_name
+        if not img_path.exists():
+            return None
+        
+        try:
+            box = pyautogui.locateOnScreen(
+                str(img_path),
+                confidence=self.confidence,
+                region=region,
+                grayscale=False
+            )
+            if box:
+                # box is (left, top, width, height) in physical pixels
+                # convert to logical coordinates
+                left = int(box.left / SCREEN_SCALE)
+                top = int(box.top / SCREEN_SCALE)
+                width = int(box.width / SCREEN_SCALE)
+                height = int(box.height / SCREEN_SCALE)
+                return (left, top, width, height)
+        except pyautogui.ImageNotFoundException:
+            pass
+        except Exception as e:
+            print(f"  图像识别出错: {e}")
+        
+        return None
+    
+    def close_gzh_card(self) -> None:
+        """
+        关闭公众号弹窗页面：识别 close_gzh.png 的位置，在右边沿点击关闭
+        
+        如果找不到图片，则回退到使用 close_card() 方法
+        """
+        close_image = "close_gzh.png"
+        box = self._locate_box(close_image)
+        
+        if box:
+            left, top, width, height = box
+            # 在右边沿点击：x = left + width - 偏移，y = top + height / 2（垂直居中）
+            # 偏移量出 3 像素
+            offset = 3
+            click_x = left + width - offset
+            click_y = top + int(height / 2)
+            
+            # 添加随机偏移，模拟真人
+            offset_x = random.randint(-2, 2)
+            offset_y = random.randint(-2, 2)
+            final_click_x = click_x + offset_x
+            final_click_y = click_y + offset_y
+            
+            # 调试截图：标记 close_gzh.png 位置和点击位置
+            try:
+                full_screen = pyautogui.screenshot()
+                draw = ImageDraw.Draw(full_screen)
+                
+                # 转换为物理像素坐标用于绘制
+                box_physical_left = int(left * SCREEN_SCALE)
+                box_physical_top = int(top * SCREEN_SCALE)
+                box_physical_width = int(width * SCREEN_SCALE)
+                box_physical_height = int(height * SCREEN_SCALE)
+                click_physical_x = int(final_click_x * SCREEN_SCALE)
+                click_physical_y = int(final_click_y * SCREEN_SCALE)
+                
+                # 绘制 close_gzh.png 的 box（绿色框）
+                draw.rectangle(
+                    [(box_physical_left, box_physical_top), 
+                     (box_physical_left + box_physical_width, box_physical_top + box_physical_height)],
+                    outline="green",
+                    width=3
+                )
+                
+                # 绘制点击位置（红色圆圈）
+                circle_radius = 10
+                draw.ellipse(
+                    [(click_physical_x - circle_radius, click_physical_y - circle_radius),
+                     (click_physical_x + circle_radius, click_physical_y + circle_radius)],
+                    outline="red",
+                    width=3
+                )
+                # 绘制十字线
+                draw.line(
+                    [(click_physical_x - 15, click_physical_y),
+                     (click_physical_x + 15, click_physical_y)],
+                    fill="red",
+                    width=2
+                )
+                draw.line(
+                    [(click_physical_x, click_physical_y - 15),
+                     (click_physical_x, click_physical_y + 15)],
+                    fill="red",
+                    width=2
+                )
+                
+                # 保存截图
+                logs_dir = PROJECT_DIR / "logs"
+                logs_dir.mkdir(exist_ok=True)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                output_path = logs_dir / f"close_gzh_debug_{timestamp}.png"
+                full_screen.save(str(output_path))
+                print(f"  📸 调试截图已保存: {output_path}")
+                print(f"     绿色框: close_gzh.png 位置 ({left}, {top}, {width}x{height})")
+                print(f"     红色标记: 点击位置 ({final_click_x}, {final_click_y})")
+            except Exception as e:
+                print(f"  ⚠ 调试截图失败: {e}")
+            
+            pyautogui.moveTo(final_click_x, final_click_y, duration=0.3)
+            time.sleep(0.2)
+            pyautogui.click(final_click_x, final_click_y)
+            print(f"  → 关闭公众号弹窗 (点击位置: ({final_click_x}, {final_click_y}))")
+            time.sleep(1.5)  # 等待弹窗关闭
+        else:
+            # 如果找不到图片，回退到使用快捷键方式
+            print(f"  ⚠ 未找到 {close_image}，使用快捷键关闭")
+            self.close_card()
     
     def click_search_logo(self) -> bool:
         """
@@ -749,7 +874,7 @@ class AutoFollower:
                         else:
                             print(f"  ⚠ 公众号关注按钮未找到（可能已关注）")
                         # 6. 关闭卡片
-                        self.close_card()
+                        self.close_gzh_card()
                     else:
                         print(f"  ⚠ 点击公众号卡片失败")
                 else:

@@ -123,7 +123,7 @@ class AutoFollower:
         self.searched_gzh_height = 100
         
         # 账号标签 Y 上限（逻辑坐标）：超过则视为误匹配，位置错误
-        self.account_tab_y_max = 180
+        self.account_tab_y_max = 250
         
         # 加载校准配置
         self._load_calibration()

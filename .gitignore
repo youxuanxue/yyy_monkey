@@ -28,3 +28,6 @@ comment_history.json
 config/youtube_token.json
 config/youtube_credentials.json
 config/youtube_*.json
+
+# 历史的会话导出信息，勿提交
+transcript/

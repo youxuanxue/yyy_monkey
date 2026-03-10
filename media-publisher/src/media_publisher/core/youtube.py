@@ -9,15 +9,14 @@ import os
 import socket
 from pathlib import Path
 from typing import Optional, Callable, Tuple
+from media_publisher.shared.io import atomic_write_text
 
-# ============================================================
-# 代理配置 - 在导入 google 库之前设置环境变量
-# ============================================================
 DEFAULT_PROXY_HOST = "127.0.0.1"
 DEFAULT_PROXY_PORT = 7890
 
-def _setup_proxy():
-    """在模块加载时设置代理环境变量"""
+
+def _setup_proxy(logger_obj: Optional[logging.Logger] = None):
+    """在调用点设置代理环境变量（禁止模块导入时副作用）。"""
     proxy_host = os.environ.get('PROXY_HOST', DEFAULT_PROXY_HOST)
     proxy_port = os.environ.get('PROXY_PORT', str(DEFAULT_PROXY_PORT))
     use_proxy = os.environ.get('USE_PROXY', 'true').lower() == 'true'
@@ -28,11 +27,8 @@ def _setup_proxy():
         os.environ['HTTPS_PROXY'] = proxy_url
         os.environ['http_proxy'] = proxy_url
         os.environ['https_proxy'] = proxy_url
-        print(f"🌐 YouTube 模块已设置代理环境变量: {proxy_url}")
-
-# 在导入其他库之前设置代理
-_setup_proxy()
-# ============================================================
+        if logger_obj:
+            logger_obj.info("YouTube 模块已设置代理环境变量: %s", proxy_url)
 
 import httplib2
 import requests
@@ -172,6 +168,8 @@ class YouTubePublisher(Publisher):
         
         如果令牌存在且有效，则使用它。否则运行 OAuth 流程。
         """
+        # 在入口调用点设置代理，避免模块导入时产生全局副作用。
+        _setup_proxy(logger)
         creds = None
         
         # 加载现有令牌
@@ -240,8 +238,7 @@ class YouTubePublisher(Publisher):
 
             # 保存凭据供下次运行使用
             self.token_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.token_path, 'w') as token:
-                token.write(creds.to_json())
+            atomic_write_text(self.token_path, creds.to_json())
             self._log(f"凭据已保存到 {self.token_path}")
 
         self.credentials = creds

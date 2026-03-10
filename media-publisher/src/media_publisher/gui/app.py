@@ -116,6 +116,7 @@ class PublisherApp:
         ep_file,
         selected_platforms: List[str],
         video_file,
+        wechat_account: str = "",
     ):
         """
         Episode 模式发布（流式日志）
@@ -124,7 +125,9 @@ class PublisherApp:
             ep_file: ep*.json 文件
             selected_platforms: 选中的平台列表
             video_file: 视频文件（视频平台需要）
+            wechat_account: 微信视频号账号名称
         """
+        self._current_account = wechat_account.strip() or None
         if self.is_publishing:
             yield self.get_logs() + "\n[WARNING] 正在发布中，请等待..."
             return
@@ -258,6 +261,7 @@ class PublisherApp:
                     self.wechat_publisher = WeChatPublisher(
                         headless=False,
                         log_callback=self.add_log,
+                        account=getattr(self, '_current_account', None),
                     )
                     self.wechat_publisher.start()
                     self.wechat_publisher.authenticate()
@@ -351,6 +355,7 @@ class PublisherApp:
         self, 
         video_file,
         platform: str,
+        wechat_account: str,
         wechat_title: str,
         wechat_description: str,
         wechat_hashtags: str,
@@ -390,7 +395,8 @@ class PublisherApp:
                 
                 for _ in self._publish_to_wechat_stream(
                     video_path, wechat_title, wechat_description,
-                    wechat_hashtags, wechat_heji, wechat_huodong
+                    wechat_hashtags, wechat_heji, wechat_huodong,
+                    account=wechat_account,
                 ):
                     yield self.get_logs()
             
@@ -418,7 +424,8 @@ class PublisherApp:
     
     def _publish_to_wechat_stream(
         self, video_path: Path, title: str, description: str,
-        hashtags: str, heji: str, huodong: str
+        hashtags: str, heji: str, huodong: str,
+        account: str = "",
     ):
         """发布到微信视频号（流式版本）"""
         try:
@@ -427,6 +434,8 @@ class PublisherApp:
                 hashtag_list = [
                     tag.strip() for tag in hashtags.split() if tag.strip()
                 ]
+            
+            account = account.strip() or None
             
             task = WeChatPublishTask(
                 video_path=video_path,
@@ -439,12 +448,15 @@ class PublisherApp:
             
             self.add_log(f"[INFO] 视频文件: {video_path.name}")
             self.add_log(f"[INFO] 标题: {task.title or '(未设置)'}")
+            if account:
+                self.add_log(f"[INFO] 账号: {account}")
             yield
             
             self.wechat_publisher = WeChatPublisher(
                 headless=False,
                 debug=False,
-                log_callback=self.add_log
+                log_callback=self.add_log,
+                account=account,
             )
             self.wechat_publisher.start()
             yield
@@ -612,6 +624,12 @@ def create_app() -> gr.Blocks:
                             file_count="single",
                             height=100,
                         )
+                        
+                        ep_account_input = gr.Textbox(
+                            label="📌 微信账号名称 (区分多账号)",
+                            placeholder="如：奶奶讲故事",
+                            max_lines=1,
+                        )
                 
                 ep_preview = gr.Textbox(
                     label="📝 文章预览 (overseas_blog)",
@@ -646,6 +664,7 @@ def create_app() -> gr.Blocks:
                     fn=app_instance.publish_episode,
                     inputs=[
                         ep_file_input, ep_platform_checkboxes, ep_video_input,
+                        ep_account_input,
                     ],
                     outputs=[gr.Textbox(
                         label="",
@@ -701,6 +720,13 @@ def create_app() -> gr.Blocks:
                 
                 with gr.Group(visible=True) as wechat_group:
                     gr.Markdown("### 📱 微信视频号")
+                    with gr.Row():
+                        wechat_account_input = gr.Textbox(
+                            label="📌 账号名称 (区分多账号)",
+                            placeholder="如：奶奶讲故事",
+                            max_lines=1,
+                            scale=1,
+                        )
                     with gr.Row():
                         with gr.Column(scale=1):
                             wechat_title_input = gr.Textbox(
@@ -816,6 +842,7 @@ def create_app() -> gr.Blocks:
                     fn=app_instance.publish_legacy,
                     inputs=[
                         video_input, platform_radio,
+                        wechat_account_input,
                         wechat_title_input, wechat_description_input,
                         wechat_hashtags_input, wechat_heji_input,
                         wechat_huodong_input,

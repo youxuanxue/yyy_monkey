@@ -16,6 +16,8 @@ from playwright.sync_api import (
     Playwright,
     Browser,
 )
+from media_publisher.shared.io import atomic_write_json
+from media_publisher.shared.security import sanitize_identifier
 
 logger = logging.getLogger(__name__)
 
@@ -77,8 +79,9 @@ class PlaywrightBrowser:
             认证文件的完整路径
         """
         base = Path.home() / ".media-publisher"
-        if self.user_name:
-            auth_dir = base / self.user_name
+        safe_user_name = sanitize_identifier(self.user_name, field_name="user_name")
+        if safe_user_name:
+            auth_dir = base / safe_user_name
         else:
             auth_dir = base
         auth_dir.mkdir(parents=True, exist_ok=True)
@@ -148,7 +151,8 @@ class PlaywrightBrowser:
     def save_auth_state(self):
         """保存浏览器认证状态到文件"""
         if self._context:
-            self._context.storage_state(path=str(self.auth_file_path))
+            state = self._context.storage_state()
+            atomic_write_json(self.auth_file_path, state)
             self._log(f"登录状态已保存: {self.auth_file_path}")
 
     def __enter__(self):
